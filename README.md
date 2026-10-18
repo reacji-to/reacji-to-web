@@ -21,7 +21,7 @@ npm run deploy
 
 `wrangler.jsonc` deploys the `reacji-to` Worker to `reacji.to`. The app key is a Worker secret, never a source file. See [GitHub App setup](docs/github-app.md). Existing secrets survive code deployments.
 
-The organization-owned GitHub App is registered and its secret is uploaded. Installation on **only reacji-to/reacji-to-data** remains required before real commits can succeed. `/health` reports credential presence, not installation access or a verified live write.
+The organization-owned GitHub App is installed on **only reacji-to/reacji-to-data**, with Contents read/write and Metadata read. Installation scope and token access were verified on October 18, 2026. A live reaction commit through the extension still needs verification. `/health` reports credential presence, not installation access or a verified live write.
 
 ## Storage and authorization
 
