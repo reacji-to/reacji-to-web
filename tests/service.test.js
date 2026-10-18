@@ -108,3 +108,38 @@ test('multiple page placements share one file and preserve each other when chang
   assert.equal(new Set(f.calls.filter(c=>c.init.method==='PUT').map(c=>c.path)).size,1);
   assert.equal(document.post.url,'https://example.test/article');
 });
+
+test('public writes and removals ignore forged actor fields and preserve other users', async () => {
+  const post = { platform: 'x', id: '123456789' };
+  const victim = { login: 'friend', emoji: '🔥', requestId: 'unchanged', at: '2026-10-18T00:00:00Z' };
+  for (const emoji of ['💙', null]) {
+    const f = fixture((path, init, body) => {
+      if (path === '/user') {
+        assert.equal(init.headers.Authorization, 'Bearer verified-user-token');
+        return Response.json(user);
+      }
+      if (path.includes('/git/ref/heads/')) return Response.json({ object: { sha: 'head' } });
+      if (path.endsWith('/git/commits/head')) return Response.json({ tree: { sha: 'base' } });
+      if (path.includes('/contents/data/')) return Response.json({ encoding: 'base64', size: 1000, content: Buffer.from(JSON.stringify({ version: 1, commit: post.id, post, users: { 42: { login: 'octocat', emoji: '🚀' }, 99: victim } })).toString('base64') });
+      if (path.includes('/contents/profiles/')) {
+        assert.match(path, /\/profiles\/42\.json$/);
+        return new Response('', { status: 404 });
+      }
+      if (path.endsWith('/git/trees')) return Response.json({ sha: 'tree' });
+      if (path.endsWith('/git/commits')) return Response.json({ sha: 'commit' });
+      if (path.includes('/git/refs/heads/')) return Response.json({});
+      throw new Error(path);
+    });
+    const authenticated = await f.service.actor('verified-user-token');
+    const result = await f.service.write({ ...repo, visibility: 'public' }, authenticated, {
+      version: 1, post, emoji, actor: { id: 99, login: 'friend' }, user: { id: 99 }, githubId: 99,
+      users: { 99: { emoji } }, path: 'profiles/99.json', profile: { id: 99 },
+    }, crypto.randomUUID());
+    assert.deepEqual(result.actor, user);
+    assert.equal(result.document.users[42].emoji, emoji);
+    assert.deepEqual(result.document.users[99], victim);
+    const tree = f.calls.find(call => call.path.endsWith('/git/trees')).body.tree;
+    assert.deepEqual(tree.map(file => file.path), ['data/x/123456789.json', 'profiles/42.json']);
+    assert.equal(JSON.parse(tree[1].content).id, 42);
+  }
+});
