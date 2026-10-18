@@ -1,0 +1,12 @@
+{
+  "repository": "reacji-to/reacji-to",
+  "commit": "77bf51493bd565c79aa5852053e13ac197880297",
+  "sha256": {
+    "posts.js": "c954aba2dd756e205305f06730cb4f1a3ee01ff3f3775a8a9e471fbf978877cd",
+    "protocol.js": "45c713dba5746cd91848f3ec9f47e9ddd3ab04f5969a07a366e58ccc9a67a25f",
+    "web.js": "45fb50ccf0cfa073f8f42f67fcf22f5e8da7b81c5ac599ea414d820671480d95",
+    "emoji.json": "5f999063d3c86c6da47e2b4f4ddc48f3b98293bfcfada8acb7cddc341d54c094",
+    "config.js": "ed38e3b15865fe082f77e19bb7dc40563b5a8fc5ddcc1acc243254527c0d51be",
+    "brand.js": "31e76f689eb113817800180b9119c25aa55f11456f923ae7d64f2da043a024a7"
+  }
+}

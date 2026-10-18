@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T19:12:58.677937+00:00",
+  "title": "Design System: reacji-to website",
+  "extensions": {
+    "colorMeta": {
+      "brand-lime": {
+        "role": "primary",
+        "displayName": "Brand Lime",
+        "tonalRamp": [
+          "oklch(15.00% 0.16355 119.83)",
+          "oklch(26.43% 0.16355 119.83)",
+          "oklch(37.86% 0.16355 119.83)",
+          "oklch(49.29% 0.16355 119.83)",
+          "oklch(60.71% 0.16355 119.83)",
+          "oklch(72.14% 0.16355 119.83)",
+          "oklch(83.57% 0.16355 119.83)",
+          "oklch(95.00% 0.16355 119.83)"
+        ]
+      },
+      "brand-lime-hover": {
+        "role": "primary",
+        "displayName": "Brand Lime Hover",
+        "tonalRamp": [
+          "oklch(15.00% 0.16602 120.29)",
+          "oklch(26.43% 0.16602 120.29)",
+          "oklch(37.86% 0.16602 120.29)",
+          "oklch(49.29% 0.16602 120.29)",
+          "oklch(60.71% 0.16602 120.29)",
+          "oklch(72.14% 0.16602 120.29)",
+          "oklch(83.57% 0.16602 120.29)",
+          "oklch(95.00% 0.16602 120.29)"
+        ]
+      },
+      "brand-ink": {
+        "role": "primary",
+        "displayName": "Brand Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.03972 133.88)",
+          "oklch(26.43% 0.03972 133.88)",
+          "oklch(37.86% 0.03972 133.88)",
+          "oklch(49.29% 0.03972 133.88)",
+          "oklch(60.71% 0.03972 133.88)",
+          "oklch(72.14% 0.03972 133.88)",
+          "oklch(83.57% 0.03972 133.88)",
+          "oklch(95.00% 0.03972 133.88)"
+        ]
+      },
+      "site-accent": {
+        "role": "primary",
+        "displayName": "Site Accent",
+        "tonalRamp": [
+          "oklch(15.00% 0.11420 134.49)",
+          "oklch(26.43% 0.11420 134.49)",
+          "oklch(37.86% 0.11420 134.49)",
+          "oklch(49.29% 0.11420 134.49)",
+          "oklch(60.71% 0.11420 134.49)",
+          "oklch(72.14% 0.11420 134.49)",
+          "oklch(83.57% 0.11420 134.49)",
+          "oklch(95.00% 0.11420 134.49)"
+        ]
+      },
+      "page": {
+        "role": "neutral",
+        "displayName": "Page",
+        "tonalRamp": [
+          "oklch(15.00% 0.00171 247.84)",
+          "oklch(26.43% 0.00171 247.84)",
+          "oklch(37.86% 0.00171 247.84)",
+          "oklch(49.29% 0.00171 247.84)",
+          "oklch(60.71% 0.00171 247.84)",
+          "oklch(72.14% 0.00171 247.84)",
+          "oklch(83.57% 0.00171 247.84)",
+          "oklch(95.00% 0.00171 247.84)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.00686 258.37)",
+          "oklch(26.43% 0.00686 258.37)",
+          "oklch(37.86% 0.00686 258.37)",
+          "oklch(49.29% 0.00686 258.37)",
+          "oklch(60.71% 0.00686 258.37)",
+          "oklch(72.14% 0.00686 258.37)",
+          "oklch(83.57% 0.00686 258.37)",
+          "oklch(95.00% 0.00686 258.37)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "oklch(15.00% 0.00932 258.34)",
+          "oklch(26.43% 0.00932 258.34)",
+          "oklch(37.86% 0.00932 258.34)",
+          "oklch(49.29% 0.00932 258.34)",
+          "oklch(60.71% 0.00932 258.34)",
+          "oklch(72.14% 0.00932 258.34)",
+          "oklch(83.57% 0.00932 258.34)",
+          "oklch(95.00% 0.00932 258.34)"
+        ]
+      },
+      "dark-page": {
+        "role": "neutral",
+        "displayName": "Dark Page",
+        "tonalRamp": [
+          "oklch(15.00% 0.00203 286.19)",
+          "oklch(26.43% 0.00203 286.19)",
+          "oklch(37.86% 0.00203 286.19)",
+          "oklch(49.29% 0.00203 286.19)",
+          "oklch(60.71% 0.00203 286.19)",
+          "oklch(72.14% 0.00203 286.19)",
+          "oklch(83.57% 0.00203 286.19)",
+          "oklch(95.00% 0.00203 286.19)"
+        ]
+      },
+      "dark-surface": {
+        "role": "neutral",
+        "displayName": "Dark Surface",
+        "tonalRamp": [
+          "oklch(15.00% 0.00390 286.06)",
+          "oklch(26.43% 0.00390 286.06)",
+          "oklch(37.86% 0.00390 286.06)",
+          "oklch(49.29% 0.00390 286.06)",
+          "oklch(60.71% 0.00390 286.06)",
+          "oklch(72.14% 0.00390 286.06)",
+          "oklch(83.57% 0.00390 286.06)",
+          "oklch(95.00% 0.00390 286.06)"
+        ]
+      },
+      "dark-ink": {
+        "role": "neutral",
+        "displayName": "Dark Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Dark Muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.00718 286.22)",
+          "oklch(26.43% 0.00718 286.22)",
+          "oklch(37.86% 0.00718 286.22)",
+          "oklch(49.29% 0.00718 286.22)",
+          "oklch(60.71% 0.00718 286.22)",
+          "oklch(72.14% 0.00718 286.22)",
+          "oklch(83.57% 0.00718 286.22)",
+          "oklch(95.00% 0.00718 286.22)"
+        ]
+      },
+      "dark-line": {
+        "role": "neutral",
+        "displayName": "Dark Line",
+        "tonalRamp": [
+          "oklch(15.00% 0.00862 285.94)",
+          "oklch(26.43% 0.00862 285.94)",
+          "oklch(37.86% 0.00862 285.94)",
+          "oklch(49.29% 0.00862 285.94)",
+          "oklch(60.71% 0.00862 285.94)",
+          "oklch(72.14% 0.00862 285.94)",
+          "oklch(83.57% 0.00862 285.94)",
+          "oklch(95.00% 0.00862 285.94)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15.00% 0.01910 254.02)",
+          "oklch(26.43% 0.01910 254.02)",
+          "oklch(37.86% 0.01910 254.02)",
+          "oklch(49.29% 0.01910 254.02)",
+          "oklch(60.71% 0.01910 254.02)",
+          "oklch(72.14% 0.01910 254.02)",
+          "oklch(83.57% 0.01910 254.02)",
+          "oklch(95.00% 0.01910 254.02)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display"
+      },
+      "hero-body": {
+        "displayName": "Hero Body"
+      },
+      "headline": {
+        "displayName": "Headline"
+      },
+      "profile-title": {
+        "displayName": "Profile Title"
+      },
+      "body": {
+        "displayName": "Body"
+      },
+      "demo-quote": {
+        "displayName": "Demo Quote"
+      },
+      "navigation": {
+        "displayName": "Navigation"
+      },
+      "profile-emoji": {
+        "displayName": "Profile Emoji"
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "eyes-hover",
+        "value": "350ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Rotate -5deg and rise 8px; disabled under reduced motion."
+      },
+      {
+        "name": "choice-hover",
+        "value": "180ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Rise 3px; disabled under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "profile-narrow",
+        "value": "500px"
+      },
+      {
+        "name": "home-stack",
+        "value": "700px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Installation action",
+      "kind": "button",
+      "refersTo": "button-install",
+      "description": "Homepage download link.",
+      "html": "<a class=\"ds-cta\" href=\"#download\">Get reacji-to ↗</a>",
+      "css": ".ds-cta{display:inline-block;background:#d9f66f;color:#17230f;padding:15px 22px;border-radius:6px;text-decoration:none;font:600 16px/1.6 Geist,system-ui,sans-serif}.ds-cta:hover{background:#c9e75d;color:#17230f}.ds-cta:focus-visible{outline:2px solid var(--accent,#335d10);outline-offset:5px}"
+    },
+    {
+      "name": "Profile filters",
+      "kind": "nav",
+      "refersTo": "filter-active",
+      "description": "Quiet wrapping navigation for reading public reactions.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Filter by site\"><a href=\"#all\" aria-current=\"true\">All</a><a href=\"#web\">Web</a><a href=\"#devnull\">dev-null</a></nav>",
+      "css": ".ds-nav{display:flex;gap:8px;flex-wrap:wrap;font-family:Geist,system-ui,sans-serif}.ds-nav a{font-size:14px;padding:5px 12px;text-decoration:none;border-radius:6px;color:var(--ink,#121417)}.ds-nav a[aria-current=true]{background:var(--ink,#121417);color:var(--bg,#f6f7f8)}.ds-nav a:hover{color:var(--accent,#335d10)}.ds-nav a:focus-visible{outline:2px solid var(--accent,#335d10);outline-offset:5px}"
+    },
+    {
+      "name": "Emoji radio choices",
+      "kind": "input",
+      "refersTo": "emoji-choice",
+      "description": "Native radio choices for a local, unsaved demo.",
+      "html": "<fieldset class=\"ds-demo\"><legend>Try a reaction. Nothing is posted.</legend><div><input id=\"ds-heart\" name=\"ds-demo\" type=\"radio\" checked><label for=\"ds-heart\" aria-label=\"Blue heart\">💙</label><input id=\"ds-fire\" name=\"ds-demo\" type=\"radio\"><label for=\"ds-fire\" aria-label=\"Fire\">🔥</label></div></fieldset>",
+      "css": ".ds-demo{border:0;padding:0;font:13px/1.6 Geist,system-ui,sans-serif;color:var(--muted,#535b65)}.ds-demo legend{margin-bottom:10px}.ds-demo div{display:flex;gap:8px}.ds-demo input{position:absolute;width:1px;height:1px;opacity:0;padding:0}.ds-demo label{display:grid;place-items:center;width:48px;height:44px;border:1px solid var(--line,#d3d7dd);border-radius:6px;font-size:24px;background:var(--surface,#fff);cursor:pointer;transition:translate 180ms cubic-bezier(.16,1,.3,1)}.ds-demo label:hover{translate:0 -3px}.ds-demo input:checked+label{border-color:var(--ink,#121417);background:var(--bg,#f6f7f8)}.ds-demo input:focus-visible+label{outline:2px solid var(--accent,#335d10);outline-offset:4px}@media(prefers-reduced-motion:reduce){.ds-demo label{transition:none}.ds-demo label:hover{translate:none}}"
+    },
+    {
+      "name": "Demo excerpt",
+      "kind": "card",
+      "refersTo": "demo-excerpt",
+      "description": "A single demonstration surface, not the profile row style.",
+      "html": "<article class=\"ds-excerpt\"><blockquote>“The best part of the internet is still the people who put a little of themselves into it.”</blockquote></article>",
+      "css": ".ds-excerpt{background:var(--surface,#fff);color:var(--ink,#121417);border:1px solid var(--line,#d3d7dd);border-radius:16px;padding:36px 36px 48px}.ds-excerpt blockquote{margin:0;font:24px/1.5 Geist,system-ui,sans-serif;letter-spacing:-.02em}"
+    },
+    {
+      "name": "Attached demo emoji",
+      "kind": "chip",
+      "refersTo": "placed-emoji",
+      "description": "Decorative reaction tab attached to the demo excerpt.",
+      "html": "<span class=\"ds-placed\" aria-hidden=\"true\">💙</span>",
+      "css": ".ds-placed{display:grid;place-items:center;width:62px;height:52px;background:var(--bg,#f6f7f8);border:1px solid var(--line,#d3d7dd);border-radius:12px;transform:rotate(-8deg);font-size:32px;line-height:1}"
+    },
+    {
+      "name": "Profile row",
+      "kind": "custom",
+      "description": "Open ruled reading row with emoji, link, excerpt, and date.",
+      "html": "<div class=\"ds-row\"><span class=\"ds-emoji\">💙</span><div><a href=\"#post\">example.com ↗</a><small>A sentence worth reacting to.</small></div><time>Oct 18, 2026</time></div>",
+      "css": ".ds-row{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:18px;padding:22px 0;border-top:1px solid var(--line,#d3d7dd);font:16px/1.6 Geist,system-ui,sans-serif;color:var(--ink,#121417)}.ds-emoji{font:36px/1.2 \"Apple Color Emoji\",\"Segoe UI Emoji\",sans-serif;text-align:center}.ds-row a{color:inherit;font-weight:600;text-decoration:none}.ds-row a:hover{text-decoration:underline;color:var(--accent,#335d10)}.ds-row a:focus-visible{outline:2px solid var(--accent,#335d10);outline-offset:5px}.ds-row small{display:block;color:var(--muted,#535b65);overflow-wrap:anywhere}.ds-row time{font-size:13px;color:var(--muted,#535b65);font-variant-numeric:tabular-nums}@media(max-width:500px){.ds-row{grid-template-columns:44px minmax(0,1fr);gap:12px}.ds-emoji{font-size:30px}.ds-row time{grid-column:2;margin-top:-12px}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A small sideways glance, given room",
+    "overview": "The website amplifies the established reacji-to eyes without replacing their identity. A pale neutral page, direct dark type, and a lime download action give the approved photorealistic blue eyes room to be playful. The homepage is spacious and expressive; public profiles retain a quieter reading rhythm built from open, ruled rows.\n\nThis document owns the homepage and public profile surfaces in `reacji-to/reacji-to-web`. The compact blue picker and settings belong to the separate extension repository. It records `worker/home.js`, `worker/pages.js`, `public/logo.png`, `public/icon-512.png`, and `public/fonts/`. The approved logo generation prompt is retained at `docs/logo-generation.txt`. Reviewed homepage evidence is `.impeccable/review/home-desktop.png`, `.impeccable/review/home-mobile.png`, and `.impeccable/review/home-dark.png`. Profile guidance below is source-derived and preserves the incumbent reading mode.",
+    "keyCharacteristics": [
+      "Large transparent blue eyes as the homepage's expressive anchor.",
+      "Neutral page surfaces, dark type, lime installation action.",
+      "Spacious homepage and compact ruled profile rows.",
+      "A small interactive emoji example built from native radio controls and CSS.",
+      "Automatic dark mode and reduced-motion-aware hover behavior."
+    ],
+    "rules": [
+      {
+        "name": "Accent",
+        "body": "Preserve lime for the clear installation action and contextual focus; let the eye artwork provide the blue expression.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "**Do** preserve the approved transparent blue-eye artwork and reacji-to wordmark.",
+      "**Do** keep the homepage expressive through scale, clear type, and the small emoji interaction.",
+      "**Do** retain neutral surfaces, lime download actions, visible focus, and dark-mode mappings.",
+      "**Do** preserve the quieter ruled reading layout for public profiles.",
+      "**Do** keep the demo's native radio semantics and reduced-motion behavior."
+    ],
+    "donts": [
+      "**Don't** recolor the eye asset, add an opaque tile, or replace it with a generic icon.",
+      "**Don't** reintroduce the removed homepage profile-search box.",
+      "**Don't** spread homepage hero scale or demo cards into profile feed rows.",
+      "**Don't** show private reactions or private counts on public profiles.",
+      "**Don't** imply the local emoji demo posts a reaction."
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+.dev.vars*
+.env*
+*.pem
+test-results/
+playwright-report/
+.impeccable/review/
+.DS_Store
