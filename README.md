@@ -21,6 +21,10 @@ npm run deploy
 
 `wrangler.jsonc` deploys the `reacji-to` Worker to `reacji.to`. The app key is a Worker secret, never a source file. See [GitHub App setup](docs/github-app.md). Existing secrets survive code deployments.
 
+GitHub Actions deploys pushes to `main` after unit tests, browser tests, shared-source checks, and a dry-run build pass. Pull requests only run checks. The workflow can also be run manually on `main`. Production deploys are serialized and verify the live homepage, exact reaction bundle, and Worker configuration afterward.
+
+Configure the `CLOUDFLARE_API_TOKEN` repository secret with a Cloudflare **Edit Cloudflare Workers** API token scoped to the deployment account and the `reacji.to` zone. The account ID is already configured. Do not use a local Wrangler OAuth session as a CI credential. Setup: https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/
+
 The organization-owned GitHub App is installed on **only reacji-to/reacji-to-data**, with Contents read/write and Metadata read. Installation scope and token access were verified on October 18, 2026. A live reaction commit through the extension still needs verification. `/health` reports credential presence, not installation access or a verified live write.
 
 ## Storage and authorization
@@ -31,7 +35,7 @@ Installation tokens are narrowed to exactly one repository with Contents write. 
 
 Webpage files contain placements with validated element paths, excerpts, and relative coordinates. URLs must be ordinary HTTP/HTTPS URLs whose SHA-256 matches the document identity. The Worker never fetches those URLs. Public profiles render escaped, validated data only. Private data never enters public profile indexes.
 
-The website serves its own logo and OFL-licensed Geist fonts, with no third-party font requests. The interactive landing-page trial uses the same reaction engine as the extension. It saves only to localStorage and posts nothing to GitHub.
+The website serves its own logo and OFL-licensed Geist fonts, with no third-party font requests. The interactive landing-page trial uses the same reaction engine as the extension. Sample posts reset to eyes on reload and at the start of each autoplay pass. Reactions placed elsewhere on the page save only to localStorage; nothing posts to GitHub.
 
 ## Shared contract
 

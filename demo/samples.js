@@ -6,6 +6,6 @@ export const samplePosts = [
 export function discoverSamples() {
   return samplePosts.map(sample => {
     const article = document.getElementById(sample.id);
-    return { article, anchor: article.querySelector('[data-reaction-anchor]'), post: sample.post, inline: true };
+    return { article, anchor: article.querySelector(sample.post.platform === 'devnull' ? '.action-star' : '.action-like'), post: sample.post, inline: true };
   });
 }

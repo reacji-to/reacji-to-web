@@ -32,7 +32,18 @@ export function startShowcase(app) {
     const run = generation;
     scripted = true;
     try {
-      if (step === 0) { point(trigger()); step = 1; schedule(1000); }
+      if (step === 0) {
+        // Every autoplay pass demonstrates an unreacted post before choosing an emoji.
+        const currentRecord = record();
+        if (currentRecord) {
+          for (const scope of ['private', 'public']) {
+            currentRecord.visibility = scope;
+            await app.choose(currentRecord, null);
+            if (run !== generation) return;
+          }
+        }
+        point(trigger()); step = 1; schedule(1000);
+      }
       else if (step === 1) {
         if (index === 3) {
           const target = trigger(), box = target.getBoundingClientRect();
@@ -45,10 +56,15 @@ export function startShowcase(app) {
         if (search) { search.value = current().dataset.reaction; search.dispatchEvent(new Event('input')); }
         step = 3; schedule(1200);
       } else if (step === 3) {
-        if (record()) await app.choose(record(), current().dataset.reaction);
+        if (record()) await app.choose(record(), current().dataset.reaction, undefined, {trackUsage:false});
         if (run !== generation) return;
         step = 4; schedule(2400);
-      } else { show((index+1)%posts.length); schedule(1000); }
+      } else {
+        // Clear the outgoing example before it can appear in another loop.
+        if (record()) await app.choose(record(), null);
+        if (run !== generation) return;
+        show((index+1)%posts.length); schedule(1000);
+      }
     } finally { scripted = false; }
   }
   tabs.forEach((tab,i) => {

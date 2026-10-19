@@ -1,18 +1,31 @@
 import {postRef, emptyPost, validDocument} from '@reacji/posts';
 import {placementRef, canonicalUrl} from '@reacji/web';
 import {emojiValue} from '@reacji/protocol';
+import {normalizeUsage, recordEmojiUse} from '@reacji/emoji-frequency';
 import { samplePosts } from './samples.js';
 const actor={id:1,login:'you'};
 const prefix='reacji.to:page-demo:v1:';
+const sampleDocuments=new Map();
+const demoPlacements={public:{},private:{}};
+const isSamplePlacement=placement=>Boolean(document.querySelector(placement.anchor.selector)?.closest('.reaction-demo'));
+const usageKey='reacji.to:emoji-usage';
+function readUsage(){try{return normalizeUsage(JSON.parse(localStorage.getItem(usageKey)));}catch{return [];}}
+function rememberEmoji(emoji,moveFrom){
+  if(!emoji||moveFrom)return;
+  try{localStorage.setItem(usageKey,JSON.stringify(recordEmojiUse(readUsage(),emoji)));}catch{/* Saving a preference must not undo a saved reaction. */}
+}
 function key(post,scope) { return `${prefix}${post.id}:${scope}`; }
 function read(post,scope) {
+  if(post.platform!=='web')return structuredClone(sampleDocuments.get(key(post,scope))||emptyPost(post));
   const raw=localStorage.getItem(key(post,scope));
-  if(!raw)return emptyPost(post);
-  const value=JSON.parse(raw);
+  const value=raw?JSON.parse(raw):emptyPost(post);
   if(!validDocument(value,post))throw new Error('Saved demo reactions could not be read. Clear this site’s browser data to reset them.');
+  value.placements=Object.fromEntries(Object.entries(value.placements||{}).filter(([,placement])=>!isSamplePlacement(placement)));
+  Object.assign(value.placements,demoPlacements[scope]);
   return value;
 }
 async function handle(message) {
+  if(message.type==='emoji-usage-get')return {usage:readUsage()};
   if(message.type==='visibility-get')return {visibility:localStorage.getItem('reacji.to:trial-visibility')==='private'?'private':'public'};
   if(message.type==='visibility-save'){
     if(!['public','private'].includes(message.visibility))throw new Error('Choose Public or Private.');
@@ -31,8 +44,8 @@ async function handle(message) {
   if(post.platform!=='web'){
     if(emoji===null)delete doc.users[actor.id];
     else doc.users[actor.id]={login:actor.login,emoji};
-    if(Object.keys(doc.users).length)localStorage.setItem(key(post,scope),JSON.stringify(doc));
-    else localStorage.removeItem(key(post,scope));
+    sampleDocuments.set(key(post,scope),structuredClone(doc));
+    if(message.trackUsage!==false)rememberEmoji(emoji);
     return {actor,document:doc};
   }
   const anchor=placementRef(message.event.placement);
@@ -45,8 +58,11 @@ async function handle(message) {
   }
   if(emoji===null)delete doc.placements[anchor.id];
   else doc.placements[anchor.id]={anchor,users:{[actor.id]:{login:actor.login,emoji}}};
-  if(Object.keys(doc.placements).length)localStorage.setItem(key(post,scope),JSON.stringify(doc));
+  demoPlacements[scope]=Object.fromEntries(Object.entries(doc.placements).filter(([,placement])=>isSamplePlacement(placement)));
+  const persistent={...doc,placements:Object.fromEntries(Object.entries(doc.placements).filter(([,placement])=>!isSamplePlacement(placement)))};
+  if(Object.keys(persistent.placements).length)localStorage.setItem(key(post,scope),JSON.stringify(persistent));
   else localStorage.removeItem(key(post,scope));
+  if(message.trackUsage!==false)rememberEmoji(emoji,message.event.moveFrom);
   return {actor,document:doc};
 }
 // Lexical browser API replacement. Never touches the installed extension or its credentials.
