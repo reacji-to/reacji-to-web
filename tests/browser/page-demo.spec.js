@@ -59,6 +59,7 @@ test('Public and Private trial choices stay separate and both remain local',asyn
 test('a placed trial reaction can be dragged and keeps its new position after reload',async({page})=>{
  await setup(page);await place(page,'💙','blue heart');
  const chip=page.locator('reacji-to-reactions .pin .chip');
+ await expect(chip).toBeVisible();
  const before=await chip.boundingBox(),target=await page.locator('h1').boundingBox();
  await page.mouse.move(before.x+before.width/2,before.y+before.height/2);await page.mouse.down();
  await page.mouse.move(target.x+target.width*.6,target.y+target.height*.5,{steps:8});await page.mouse.up();
