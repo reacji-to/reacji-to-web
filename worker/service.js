@@ -8,14 +8,35 @@ import { verifyPagePost, placementUsers } from '../shared/web.js';
 function recordReaction(current, post, user, event, requestId, at) {
   const document = { ...structuredClone(current), post };
   let users = document.users;
+  if (event.moveFrom) {
+    const source = document.placements?.[event.moveFrom];
+    if (!source?.users?.[user.id]?.emoji) throw new HttpError(409, 'Your reaction has changed. Refresh the page before moving it.');
+    if (document.placements?.[event.placement.id]) throw new HttpError(409, 'That placement already exists. Try moving again.');
+    delete source.users[user.id];
+    if (!Object.keys(source.users).length) delete document.placements[event.moveFrom];
+  }
   if (event.placement) {
     document.placements ||= {};
     if (!document.placements[event.placement.id] && Object.keys(document.placements).length >= 1000) throw new HttpError(409, 'This page has reached its placement limit.');
     document.placements[event.placement.id] ||= { anchor: event.placement, users: {} };
     users = document.placements[event.placement.id].users;
   }
-  users[user.id] = { login: user.login, emoji: event.emoji, requestId, at };
+  if (event.emoji === null) {
+    delete users[user.id];
+    if (event.placement && !Object.keys(users).length) delete document.placements[event.placement.id];
+  } else users[user.id] = { login: user.login, emoji: event.emoji, requestId, at };
   return document;
+}
+
+function alreadySaved(document, event, user, requestId) {
+  const previous = placementUsers(document, event.placement)[user.id];
+  if (previous?.requestId === requestId) return true;
+  if (!event.moveFrom) return event.emoji === null ? !previous : previous?.emoji === event.emoji;
+  // The server may have committed before the response was lost. A retried move
+  // is complete only when our source is gone and our exact destination is saved.
+  const destination = document.placements?.[event.placement.id];
+  return previous?.emoji === event.emoji && !document.placements?.[event.moveFrom]?.users?.[user.id]
+    && ['selector', 'tag', 'quote', 'x', 'y', 'mode'].every(key => destination.anchor[key] === event.placement[key]);
 }
 
 export class HttpError extends Error { constructor(status, message) { super(message); this.status = status; } }
@@ -56,9 +77,9 @@ export function createService(env, fetcher = fetch) {
     if (!['public', 'private'].includes(visibility)) throw new HttpError(400, 'Choose Public or Private.');
     const name = visibility === 'public' ? REPOSITORY : selected;
     if (!repoPattern.test(name || '')) throw new HttpError(400, 'Choose a private repository in extension settings.');
-    const repo = await api(`/repos/${name}`, token);
+    const repo = await api(`/repos/${name}`, token, { cache: 'no-store' });
     if (visibility === 'public' && (repo.id !== REPOSITORY_ID || repo.private)) throw new HttpError(403, 'The public repository does not match the configured repository.');
-    if (visibility === 'private' && (!repo.private || repo.owner?.id !== user.id || repo.owner?.type !== 'User' || !repo.permissions?.push)) {
+    if (visibility === 'private' && (repo.private !== true || repo.owner?.id !== user.id || repo.owner?.type !== 'User' || !repo.permissions?.push)) {
       throw new HttpError(403, 'Private reactions require a private repository owned by your GitHub account, with write access.');
     }
     if (!repoPattern.test(repo.full_name)) throw new HttpError(400, 'Invalid repository.');
@@ -90,9 +111,14 @@ export function createService(env, fetcher = fetch) {
     if (repo.visibility === 'public') return writePublic(repo, user, event, post, requestId, token);
     for (let attempt = 0; attempt < 5; attempt++) {
       const current = await read(repo, token, post);
-      const previous = placementUsers(current.document, event.placement)[user.id];
-      if (previous?.requestId === requestId || (previous?.emoji ?? null) === event.emoji) return { document: current.document, changed: false, actor: user };
+      if (alreadySaved(current.document, event, user, requestId)) return { document: current.document, changed: false, actor: user };
       const document = recordReaction(current.document, post, user, event, requestId, new Date().toISOString());
+      // Queueing and conflict retries can outlive the initial visibility check.
+      // Check with GitHub again before sending any reaction content to the repo.
+      const latest = await api(`/repos/${repo.name}`, token, { cache: 'no-store' });
+      if (latest.private !== true || latest.id !== repo.id || latest.owner?.id !== user.id || latest.owner?.type !== 'User') {
+        throw new HttpError(403, 'This repository is no longer a private repository owned by your GitHub account. Choose a private repository in extension settings.');
+      }
       try {
         const result = await api(`/repos/${repo.name}/contents/${postPath(post)}`, token, { method: 'PUT', body: JSON.stringify({
           message: `reaction: ${event.emoji || 'remove'} on ${event.commit} by @${user.login}`,
@@ -108,8 +134,7 @@ export function createService(env, fetcher = fetch) {
       const head = await api(`/repos/${repo.name}/git/ref/heads/${encodeURIComponent(repo.branch)}`, token);
       const base = await api(`/repos/${repo.name}/git/commits/${head.object.sha}`, token);
       const current = await read({ ...repo, branch: head.object.sha }, token, post);
-      const previous = placementUsers(current.document, event.placement)[user.id];
-      if (previous?.requestId === requestId || (previous?.emoji ?? null) === event.emoji) return { document: current.document, changed: false, actor: user };
+      if (alreadySaved(current.document, event, user, requestId)) return { document: current.document, changed: false, actor: user };
       let profile = { version: 1, id: user.id, login: user.login, reactions: {} };
       try {
         const file = await api(`/repos/${repo.name}/contents/profiles/${user.id}.json?ref=${head.object.sha}`, token);
@@ -120,6 +145,7 @@ export function createService(env, fetcher = fetch) {
       const at = new Date().toISOString();
       const document = recordReaction(current.document, post, user, event, requestId, at);
       profile.login = user.login;
+      if (event.moveFrom) delete profile.reactions[`${postKey(post)}:${event.moveFrom}`];
       const profileKey = postKey(post) + (event.placement ? `:${event.placement.id}` : '');
       if (event.emoji) profile.reactions[profileKey] = { post, ...(event.placement ? { placement: event.placement } : {}), emoji: event.emoji, at, url: postUrl(post) };
       else delete profile.reactions[profileKey];

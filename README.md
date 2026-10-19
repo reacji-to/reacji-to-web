@@ -31,7 +31,7 @@ Installation tokens are narrowed to exactly one repository with Contents write. 
 
 Webpage files contain placements with validated element paths, excerpts, and relative coordinates. URLs must be ordinary HTTP/HTTPS URLs whose SHA-256 matches the document identity. The Worker never fetches those URLs. Public profiles render escaped, validated data only. Private data never enters public profile indexes.
 
-The website serves its own logo and OFL-licensed Geist fonts, with no third-party font requests. The landing-page reaction demo works without JavaScript and posts nothing.
+The website serves its own logo and OFL-licensed Geist fonts, with no third-party font requests. The interactive landing-page trial uses the same reaction engine as the extension. It saves only to localStorage and posts nothing to GitHub.
 
 ## Shared contract
 
@@ -44,3 +44,11 @@ node scripts/export-web-core.mjs ../reacji-to-web
 `shared/ORIGIN.json` records the source commit and SHA-256 hashes. After exporting, run `npm run build:assets`, tests, and a dry-run deployment. Do not edit generated shared files independently.
 
 Tests mock writes and cover permission narrowing, identity matching, conflict recovery, atomic profiles, web placements, and safe public rendering. No test submits reactions on real social posts.
+
+## Shared reaction UI and local preview
+
+Run `npm run preview` and open http://127.0.0.1:4173. Hold down Option (Alt on Windows/Linux) and click content, or use the example-post eyes buttons. The preview watches the sibling extension’s source imports, rebuilds the trial bundle, and restarts the server automatically; refresh the page after an edit.
+
+`../devnull/src/reaction-app.js` owns all reaction behavior. The extension entry point passes its runtime; this site's `demo/page-entry.js` passes a browser-local runtime and sample-post discovery. `demo/showcase.js` only drives the example presentation. There is no second picker implementation.
+
+`npm run build:page-demo` refreshes the bundle and `shared/extension/` snapshot. `npm run check:shared` verifies every imported source file and the resulting bundle. It runs before browser tests and deployment. Without the sibling extension checkout, builds use the tracked snapshot, so CI and deployments are self-contained. Set `REACJI_EXTENSION_SOURCE` to use another extension `src` directory. Never edit generated sources directly; see AGENTS.md in both repositories.

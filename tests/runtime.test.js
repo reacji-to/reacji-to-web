@@ -10,6 +10,7 @@ test('Workers runtime authenticates, commits public and private reactions, and r
   const bundle = await build({ entryPoints: ['worker/index.js'], bundle: true, write: false, format: 'esm', platform: 'node', external: ['cloudflare:workers'], target: 'es2022' });
   const calls = [];
   let redirectIdentity = false;
+  let privateRepository = true, becomesPublicBeforeWrite = false;
   const json = value => new RuntimeResponse(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
   const runtime = new Miniflare(convertV4MiniflareOptions({
     modules: true, script: bundle.outputFiles[0].text,
@@ -24,7 +25,7 @@ test('Workers runtime authenticates, commits public and private reactions, and r
         ? new RuntimeResponse('', { status: 302, headers: { Location: 'https://untrusted.example/collect' } })
         : json({ id: 42, login: 'octocat' });
       if (path === '/repos/reacji-to/reacji-to-data') return json({ id: 1424709515, full_name: 'reacji-to/reacji-to-data', private: false, default_branch: 'main' });
-      if (path === '/repos/octocat/private') return json({ id: 77, full_name: 'octocat/private', private: true, default_branch: 'main', owner: { id: 42, type: 'User' }, permissions: { push: true } });
+      if (path === '/repos/octocat/private') return json({ id: 77, full_name: 'octocat/private', private: privateRepository && !(becomesPublicBeforeWrite && request.headers.get('Authorization') === 'Bearer test-installation-token'), default_branch: 'main', owner: { id: 42, type: 'User' }, permissions: { push: true } });
       if (path.endsWith('/installation')) return json({ id: 55, app_id: 123 });
       if (path.endsWith('/access_tokens')) return json({ token: 'test-installation-token' });
       if (path.includes('/git/ref/heads/')) return json({ object: { sha: 'head' } });
@@ -53,6 +54,25 @@ test('Workers runtime authenticates, commits public and private reactions, and r
       assert.equal((await repeated.json()).duplicate, true);
     }
     assert.deepEqual(calls.filter(c => c.path.endsWith('/access_tokens')).map(c => c.body.repository_ids), [[1424709515], [77]]);
+    // A saved selection must not bypass a fresh check on subsequent requests.
+    privateRepository = false;
+    for (const endpoint of ['react', 'private/validate', 'private/read']) {
+      const before = calls.length;
+      const response = await runtime.dispatchFetch(`https://reacji.test/v1/${endpoint}`, {
+        method: 'POST', headers: { Authorization: 'Bearer test-user-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visibility: 'private', repository: 'octocat/private', post, requestId: crypto.randomUUID(), event: { version: 1, post, placement, emoji: '💙' } }),
+      });
+      assert.equal(response.status, 403);
+      assert.match((await response.json()).error, /Private reactions require/);
+      assert.deepEqual(calls.slice(before).map(c => c.path), ['/user', '/repos/octocat/private']);
+    }
+    privateRepository = true;
+    becomesPublicBeforeWrite = true;
+    const beforeWrite = calls.length;
+    const blocked = await send('private');
+    assert.equal(blocked.status, 403);
+    assert.match((await blocked.json()).error, /no longer a private repository/);
+    assert.equal(calls.slice(beforeWrite).some(c => c.path.includes('/contents/') && c.body), false);
     redirectIdentity = true;
     const count = calls.length;
     const response = await send('public');

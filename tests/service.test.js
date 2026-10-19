@@ -7,12 +7,13 @@ const commit = '01a14f9d-76a7-72d9-a92d-48ae9ea999cb';
 const user = { id: 42, login: 'octocat' };
 const repo = { id: 77, name: 'octocat/private', branch: 'main', visibility: 'private' };
 const privateKey = generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ type: 'pkcs8', format: 'pem' });
-function fixture(handler) {
+function fixture(handler, repositoryMetadata = () => Response.json({ id: 77, private: true, owner: { id: 42, type: 'User' } })) {
   const calls = [];
   return { calls, service: createService({ GITHUB_APP_PRIVATE_KEY: privateKey, GITHUB_APP_ID: '123' }, async (url, init) => {
     const path = new URL(url).pathname, body = init.body && JSON.parse(init.body); calls.push({ path, body, init });
     if (path.endsWith('/installation')) return Response.json({ id: 55, app_id: 123 });
     if (path.endsWith('/access_tokens')) return Response.json({ token: 'installation-token' });
+    if (path === '/repos/octocat/private' && init.headers.Authorization === 'Bearer installation-token') return repositoryMetadata();
     return handler(path, init, body);
   }) };
 }
@@ -22,7 +23,7 @@ test('identity comparison uses numeric GitHub IDs, rejecting a different account
   assert.equal(f.calls.length, 2);
 });
 test('private target must remain private and personally owned with write access', async () => {
-  for (const bad of [{ private: false }, { owner: { id: 99, type: 'User' } }, { permissions: { push: false } }, { owner: { id: 42, type: 'Organization' } }]) {
+  for (const bad of [{ private: false }, { private: null }, { private: 'true' }, { owner: { id: 99, type: 'User' } }, { permissions: { push: false } }, { owner: { id: 42, type: 'Organization' } }]) {
     const f = fixture(() => Response.json({ id: 77, full_name: repo.name, private: true, owner: { id: 42, type: 'User' }, permissions: { push: true }, ...bad }));
     await assert.rejects(f.service.target('token', user, 'private', repo.name), /Private reactions require/);
   }
@@ -41,6 +42,29 @@ test('direct commit limits installation token to one repo and writes only the po
   assert.equal(put.path, `/repos/octocat/private/contents/data/${commit}.json`);
   assert.equal(put.init.headers.Authorization, 'Bearer installation-token');
   assert.equal(f.calls.some(c => c.path.includes('/issues')), false);
+  const check = f.calls.at(-2);
+  assert.equal(check.path, '/repos/octocat/private');
+  assert.equal(check.init.cache, 'no-store');
+});
+test('private writes refuse public, unverifiable, transferred, or replaced repositories before sending content', async () => {
+  for (const bad of [{ private: false }, { private: null }, { private: 'true' }, { id: 88 }, { owner: { id: 99, type: 'User' } }, { owner: { id: 42, type: 'Organization' } }]) {
+    const f = fixture(() => new Response('', { status: 404 }), () => Response.json({ id: 77, private: true, owner: { id: 42, type: 'User' }, ...bad }));
+    await assert.rejects(f.service.write(repo, user, { version: 1, commit, emoji: '🚀' }, crypto.randomUUID()), /no longer a private repository/);
+    assert.equal(f.calls.some(c => c.init.method === 'PUT'), false);
+  }
+  for (const status of [403, 404, 503]) {
+    const f = fixture(() => new Response('', { status: 404 }), () => new Response('', { status }));
+    await assert.rejects(f.service.write(repo, user, { version: 1, commit, emoji: '🚀' }, crypto.randomUUID()), /GitHub request failed/);
+    assert.equal(f.calls.some(c => c.init.method === 'PUT'), false);
+  }
+});
+test('a conflict retry stops if the private repository has become public', async () => {
+  let checks = 0;
+  const f = fixture((path, init) => new Response('', { status: init.method === 'PUT' ? 409 : 404 }),
+    () => Response.json({ id: 77, private: ++checks === 1, owner: { id: 42, type: 'User' } }));
+  await assert.rejects(f.service.write(repo, user, { version: 1, commit, emoji: '🚀' }, crypto.randomUUID()), /no longer a private repository/);
+  assert.equal(checks, 2);
+  assert.equal(f.calls.filter(c => c.init.method === 'PUT').length, 1);
 });
 test('SHA conflict rereads and preserves another account’s reaction', async () => {
   let reads = 0, writes = 0;
@@ -53,7 +77,7 @@ test('SHA conflict rereads and preserves another account’s reaction', async ()
   assert.equal(result.document.users[99].emoji, '🔥'); assert.equal(writes, 2);
   assert.equal(f.calls.filter(c => c.init.method === 'PUT')[1].body.sha, 'sha-2');
 });
-test('retrying the same request does not create another commit; removal is a tombstone', async () => {
+test('retrying the same request does not create another commit; removal deletes the entry', async () => {
   const requestId = crypto.randomUUID(); let document = { version: 1, commit, users: { 42: { emoji: '🔥', requestId } } };
   const f = fixture((path, init, body) => {
     if (init.method === 'PUT') { document = JSON.parse(Buffer.from(body.content, 'base64')); return Response.json({ commit: { sha: 'saved' } }); }
@@ -62,13 +86,30 @@ test('retrying the same request does not create another commit; removal is a tom
   assert.equal((await f.service.write(repo, user, { version: 1, commit, emoji: '🔥' }, requestId)).changed, false);
   assert.equal(f.calls.filter(c => c.init.method === 'PUT').length, 0);
   await f.service.write(repo, user, { version: 1, commit, emoji: null }, crypto.randomUUID());
-  assert.equal(document.users[42].emoji, null);
+  assert.equal(Object.hasOwn(document.users, 42), false);
 });
 test('path traversal and invalid emoji fail before requesting app credentials', async () => {
   const f = fixture(() => { throw new Error('Should not fetch'); });
   await assert.rejects(f.service.write(repo, user, { version: 1, commit: '../../secret', emoji: '🔥' }, 'x'), /Invalid post/);
   await assert.rejects(f.service.write(repo, user, { version: 1, commit, emoji: 'text' }, 'x'), /Unicode/);
   assert.equal(f.calls.length, 0);
+});
+
+test('removing a legacy null entry deletes it and keeps other users at the placement', async () => {
+  const post = await pagePost('https://example.test/');
+  const anchor = { id: crypto.randomUUID(), selector: 'html:nth-of-type(1) > body:nth-of-type(1)', tag: 'body', quote: '', x: 500, y: 500 };
+  const other = { login: 'friend', emoji: '🔥' };
+  let document = { version: 1, commit: post.id, post, users: {}, placements: { [anchor.id]: { anchor, users: { 42: { login: 'octocat', emoji: null }, 99: other } } } };
+  const f = fixture((path, init, body) => {
+    if (init.method === 'PUT') { document = JSON.parse(Buffer.from(body.content, 'base64')); return Response.json({ commit: { sha: 'saved' } }); }
+    return Response.json({ encoding: 'base64', size: 1000, sha: 'old', content: Buffer.from(JSON.stringify(document)).toString('base64') });
+  });
+  await f.service.write(repo, user, { version: 1, post, placement: anchor, emoji: null }, crypto.randomUUID());
+  assert.equal(Object.hasOwn(document.placements[anchor.id].users, 42), false);
+  assert.deepEqual(document.placements[anchor.id].users[99], other);
+  const again = await f.service.write(repo, user, { version: 1, post, placement: anchor, emoji: null }, crypto.randomUUID());
+  assert.equal(again.changed, false);
+  assert.equal(f.calls.filter(c => c.init.method === 'PUT').length, 1);
 });
 test('public post and profile publish atomically, and a head conflict merges both again', async () => {
   let attempt = 0;
@@ -104,7 +145,7 @@ test('multiple page placements share one file and preserve each other when chang
   await f.service.write(repo,user,{version:1,post,placement:anchor,emoji:'💙'},crypto.randomUUID());
   await f.service.write(repo,user,{version:1,post,placement:second,emoji:'🔥'},crypto.randomUUID());
   await f.service.write(repo,user,{version:1,post,placement:anchor,emoji:null},crypto.randomUUID());
-  assert.equal(document.placements[anchor.id].users[42].emoji,null);assert.equal(document.placements[second.id].users[42].emoji,'🔥');
+  assert.equal(Object.hasOwn(document.placements,anchor.id),false);assert.equal(document.placements[second.id].users[42].emoji,'🔥');
   assert.equal(new Set(f.calls.filter(c=>c.init.method==='PUT').map(c=>c.path)).size,1);
   assert.equal(document.post.url,'https://example.test/article');
 });
@@ -136,10 +177,56 @@ test('public writes and removals ignore forged actor fields and preserve other u
       users: { 99: { emoji } }, path: 'profiles/99.json', profile: { id: 99 },
     }, crypto.randomUUID());
     assert.deepEqual(result.actor, user);
-    assert.equal(result.document.users[42].emoji, emoji);
+    if (emoji === null) assert.equal(Object.hasOwn(result.document.users, 42), false);
+    else assert.equal(result.document.users[42].emoji, emoji);
     assert.deepEqual(result.document.users[99], victim);
     const tree = f.calls.find(call => call.path.endsWith('/git/trees')).body.tree;
     assert.deepEqual(tree.map(file => file.path), ['data/x/123456789.json', 'profiles/42.json']);
     assert.equal(JSON.parse(tree[1].content).id, 42);
   }
+});
+
+test('moving a placement atomically moves only the verified actor and is retry-safe', async () => {
+  const post=await pagePost('https://example.test/article');
+  const source={id:crypto.randomUUID(),selector:'html:nth-of-type(1) > body:nth-of-type(1)',tag:'body',quote:'',x:500,y:500};
+  const target={...source,id:crypto.randomUUID(),x:250,y:750,mode:'point'};
+  const other={login:'friend',emoji:'🔥'};
+  let document={version:1,commit:post.id,post,users:{},placements:{[source.id]:{anchor:source,users:{42:{login:'octocat',emoji:'💙'},99:other}}}};
+  const f=fixture((path,init,body)=>{
+    if(init.method==='PUT'){document=JSON.parse(Buffer.from(body.content,'base64'));return Response.json({commit:{sha:'moved'}});}
+    return Response.json({encoding:'base64',size:1000,sha:'old',content:Buffer.from(JSON.stringify(document)).toString('base64')});
+  });
+  const requestId=crypto.randomUUID(),event={version:1,post,placement:target,moveFrom:source.id,emoji:'💙'};
+  await f.service.write(repo,user,event,requestId);
+  assert.deepEqual(document.placements[source.id],{anchor:source,users:{99:other}});
+  assert.deepEqual(document.placements[target.id].anchor,target);
+  assert.equal(document.placements[target.id].users[42].emoji,'💙');
+  assert.equal((await f.service.write(repo,user,event,requestId)).changed,false);
+  assert.equal((await f.service.write(repo,user,event,crypto.randomUUID())).changed,false);
+  assert.equal(f.calls.filter(c=>c.init.method==='PUT').length,1);
+  await assert.rejects(f.service.write(repo,user,{...event,placement:{...target,id:crypto.randomUUID()}},crypto.randomUUID()),/Your reaction has changed/);
+  assert.equal(f.calls.filter(c=>c.init.method==='PUT').length,1);
+});
+
+test('public moves update the placement and profile in the same commit', async () => {
+  const post=await pagePost('https://example.test/article');
+  const source={id:crypto.randomUUID(),selector:'html:nth-of-type(1) > body:nth-of-type(1)',tag:'body',quote:'',x:500,y:500};
+  const target={...source,id:crypto.randomUUID(),mode:'point'};
+  const f=fixture((path,init,body)=>{
+    if(path.includes('/git/ref/heads/'))return Response.json({object:{sha:'head'}});
+    if(path.includes('/git/commits/head'))return Response.json({tree:{sha:'base'}});
+    if(path.includes('/contents/data/'))return Response.json({encoding:'base64',content:Buffer.from(JSON.stringify({version:1,commit:post.id,post,users:{},placements:{[source.id]:{anchor:source,users:{42:{emoji:'💙'}}}}})).toString('base64')});
+    if(path.includes('/contents/profiles/'))return Response.json({encoding:'base64',content:Buffer.from(JSON.stringify({version:1,id:42,reactions:{[`web:${post.id}:${source.id}`]:{post,placement:source,emoji:'💙'}}})).toString('base64')});
+    if(path.endsWith('/git/trees'))return Response.json({sha:'tree'});
+    if(path.endsWith('/git/commits'))return Response.json({sha:'commit'});
+    if(path.includes('/git/refs/heads/'))return Response.json({});
+    throw new Error(path);
+  });
+  await f.service.write({...repo,visibility:'public'},user,{version:1,post,placement:target,moveFrom:source.id,emoji:'💙'},crypto.randomUUID());
+  const files=f.calls.find(c=>c.path.endsWith('/git/trees')).body.tree;
+  const document=JSON.parse(files[0].content),profile=JSON.parse(files[1].content);
+  assert.equal(document.placements[source.id],undefined);
+  assert.equal(profile.reactions[`web:${post.id}:${source.id}`],undefined);
+  assert.deepEqual(profile.reactions[`web:${post.id}:${target.id}`].placement,target);
+  assert.equal(f.calls.filter(c=>c.path.includes('/git/refs/heads/')).length,1);
 });

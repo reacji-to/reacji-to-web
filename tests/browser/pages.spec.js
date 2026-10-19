@@ -19,7 +19,8 @@ test('public profile filters, long handles, mobile, and empty states', async ({p
   await page.screenshot({path:'.impeccable/review/home-desktop.png',fullPage:true});
   await page.emulateMedia({colorScheme:'dark'});
   await page.screenshot({path:'.impeccable/review/home-dark.png',fullPage:true});
-  await expect(page.getByRole('textbox')).toHaveCount(0);
-  await page.getByLabel('Fire',{exact:true}).check();
-  await expect(page.locator('#demo-fire')).toBeChecked();
+  await page.locator('#post-x .trigger').click();
+  await page.getByRole('searchbox').fill('🔥');
+  await page.getByRole('button',{name:'fire',exact:true}).click();
+  await expect(page.locator('#post-x .chip')).toHaveText('🔥');
 });
