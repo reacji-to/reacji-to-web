@@ -8,22 +8,38 @@ import { verifyPagePost } from '../shared/web.js';
 // One serial writer per repository. Receipts contain no tokens or reaction bodies.
 export class RepositoryWriter extends DurableObject {
   constructor(ctx, env) { super(ctx, env); this.queue = Promise.resolve(); }
-  write(repo, actor, event, requestId) {
+  write(repo, actor, event, requestId, mirrorTarget = null) {
     const run = this.queue.catch(() => {}).then(async () => {
       const key = `request:${actor.id}:${requestId}`;
-      if (await this.ctx.storage.get(key)) return { changed: false, actor, duplicate: true };
+      const duplicate = Boolean(await this.ctx.storage.get(key));
       const rateKey = `rate:${actor.id}`;
       const rate = await this.ctx.storage.get(rateKey) || { start: 0, count: 0 };
       if (Date.now() - rate.start > 60000) { rate.start = Date.now(); rate.count = 0; }
       if (++rate.count > 30) throw new HttpError(429, 'Too many reactions. Try again in a minute.');
       await this.ctx.storage.put(rateKey, rate);
-      const result = await createService(this.env).write(repo, actor, event, requestId);
+      const service = createService(this.env);
+      const result = duplicate ? { changed: false, actor, duplicate: true } : await service.write(repo, actor, event, requestId);
       await this.ctx.storage.put(key, Date.now());
       if (!await this.ctx.storage.getAlarm()) await this.ctx.storage.setAlarm(Date.now() + 86400000);
+      if (repo.visibility === 'public' && mirrorTarget) {
+        try {
+          if (mirrorTarget.error) throw new Error(mirrorTarget.error);
+          // Read the latest state on a retry, so old requests cannot restore removed reactions.
+          const document = result.document || (await service.latest(repo, event.post || event.commit)).document;
+          result.mirror = await this.env.WRITERS.getByName(String(mirrorTarget.repo.id)).mirror(mirrorTarget.repo, actor, document);
+        } catch {
+          result.mirror = { status: 'failed', error: 'Public reaction saved, but its private-repo copy failed. Check your repository and app access in settings. The next public reaction on this page will retry the copy.' };
+        }
+      }
       return result;
     });
     this.queue = run;
     return run.catch(error => ({ failure: { status: error instanceof HttpError ? error.status : 503, message: error instanceof HttpError ? error.message : 'Reaction service is unavailable. Please try again.' } }));
+  }
+  mirror(repo, actor, document) {
+    const run = this.queue.catch(() => {}).then(() => createService(this.env).mirror(repo, actor, document));
+    this.queue = run;
+    return run;
   }
   async alarm() {
     const receipts = await this.ctx.storage.list({ prefix: 'request:' });
@@ -66,7 +82,12 @@ export default {
       if (url.pathname === '/v1/private/read') return json((await service.read(repo, token, post)).document, 200, cors);
       let event; try { event = parseReaction(body.event); } catch (error) { throw new HttpError(400, error.message); }
       if (!COMMIT_ID.test(body.requestId || '')) throw new HttpError(400, 'Invalid request ID.');
-      const result = await env.WRITERS.getByName(String(repo.id)).write(repo, actor, event, body.requestId);
+      let mirrorTarget = null;
+      if (visibility === 'public' && body.repository && body.mirrorPublic !== false) {
+        try { mirrorTarget = { repo: await service.target(token, actor, 'private', body.repository) }; }
+        catch { mirrorTarget = { error: true }; }
+      }
+      const result = await env.WRITERS.getByName(String(repo.id)).write(repo, actor, event, body.requestId, mirrorTarget);
       if (result.failure) throw new HttpError(result.failure.status, result.failure.message);
       return json(result, 200, cors);
     } catch (error) {

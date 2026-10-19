@@ -17,6 +17,48 @@ function fixture(handler, repositoryMetadata = () => Response.json({ id: 77, pri
     return handler(path, init, body);
   }) };
 }
+test('public mirrors isolate the owner in public/, reconcile moves and removals, and retry conflicts', async () => {
+  const post = await pagePost('https://example.test/article');
+  const anchor = { id: crypto.randomUUID(), selector: 'body', tag: 'body', quote: '', x: 500, y: 500 };
+  const moved = { ...anchor, id: crypto.randomUUID(), x: 250 };
+  const reaction = { login: 'octocat', emoji: '🚀', at: '2026-10-19T00:00:00Z' };
+  const source = { version: 1, commit: post.id, post, users: {}, placements: {
+    [anchor.id]: { anchor, users: { 42: reaction, 99: { emoji: '🔥' } } },
+    other: { anchor, users: { 99: { emoji: '🔥' } } },
+  } };
+  let saved, puts = 0;
+  const f = fixture((path, init, body) => {
+    assert.equal(path, `/repos/octocat/private/contents/public/data/web/${post.id}.json`);
+    if (init.method === 'PUT') {
+      if (++puts === 1) return new Response('', { status: 409 });
+      saved = JSON.parse(Buffer.from(body.content, 'base64'));
+      return Response.json({ commit: { sha: 'mirror' } });
+    }
+    return saved ? Response.json({ encoding: 'base64', size: 1000, sha: 'old', content: Buffer.from(JSON.stringify(saved)).toString('base64') }) : new Response('', { status: 404 });
+  });
+  assert.equal((await f.service.mirror(repo, user, source)).status, 'saved');
+  assert.equal(puts, 2);
+  assert.deepEqual(saved.placements, { [anchor.id]: { anchor, users: { 42: reaction } } });
+  assert.equal(saved.visibility, 'public');
+  assert.equal((await f.service.mirror(repo, user, source)).changed, false);
+  delete source.placements[anchor.id];
+  source.placements[moved.id] = { anchor: moved, users: { 42: reaction } };
+  await f.service.mirror(repo, user, source);
+  assert.deepEqual(Object.keys(saved.placements), [moved.id]);
+  delete source.placements[moved.id];
+  await f.service.mirror(repo, user, source);
+  assert.deepEqual(saved.placements, {});
+  assert.deepEqual(saved.users, {});
+  assert.equal(f.calls.some(c => c.path.includes('/contents/data/')), false);
+});
+
+test('mirrors refuse public or transferred destinations without writing a copy', async () => {
+  for (const bad of [{ private: false }, { id: 88 }, { owner: { id: 99, type: 'User' } }]) {
+    const f = fixture(() => new Response('', { status: 404 }), () => Response.json({ id: 77, private: true, owner: { id: 42, type: 'User' }, ...bad }));
+    await assert.rejects(f.service.mirror(repo, user, { version: 1, commit, users: { 42: { emoji: '🚀' } } }), /no longer a private repository/);
+    assert.equal(f.calls.some(c => c.init.method === 'PUT'), false);
+  }
+});
 test('identity comparison uses numeric GitHub IDs, rejecting a different account', async () => {
   const f = fixture(path => Response.json(path === '/user' ? user : { id: 99, login: 'other' }));
   await assert.rejects(f.service.identity('user-token', 'other'), /same account/);

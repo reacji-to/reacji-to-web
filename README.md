@@ -35,6 +35,8 @@ Installation tokens are narrowed to exactly one repository with Contents write. 
 
 Webpage files contain placements with validated element paths, excerpts, and relative coordinates. URLs must be ordinary HTTP/HTTPS URLs whose SHA-256 matches the document identity. The Worker never fetches those URLs. Public profiles render escaped, validated data only. Private data never enters public profile indexes.
 
+Public requests with a selected private `repository` mirror the actor's public reactions by default; `mirrorPublic: false` opts out. After the public commit, the Worker copies only that actor's current reactions for the post/page into `public/data/` in the private repo. Private reactions remain in `data/`. Both writers serialize these commits, and the destination is checked again for private ownership before each mirror write. Receipt retries mirror the latest public state rather than replaying an old event. A failed copy returns `mirror.status: "failed"` alongside the successful public result; the next public save for that post/page retries. There is no historical import or background retry. Turning mirroring off keeps existing copies. Automations can watch `data/**` and `public/data/**`; see the [agent setup walkthrough](https://github.com/reacji-to/reacji-to/blob/main/SETUP.md#7-offer-automations-with-github-actions).
+
 The website serves its own logo and OFL-licensed Geist fonts, with no third-party font requests. The interactive landing-page trial uses the same reaction engine as the extension. Sample posts reset to eyes on reload and at the start of each autoplay pass. Reactions placed elsewhere on the page save only to localStorage; nothing posts to GitHub.
 
 ## Shared contract

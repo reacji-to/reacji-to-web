@@ -92,17 +92,52 @@ export function createService(env, fetcher = fetch) {
     const result = await api(`/app/installations/${installation.id}/access_tokens`, appJwt, { method: 'POST', body: JSON.stringify({ repository_ids: [repo.id], permissions: { contents: 'write' } }) });
     return result.token;
   };
-  const read = async (repo, token, value) => {
+  const read = async (repo, token, value, path = postPath(value)) => {
     const post = postRef(value);
     await verifyPagePost(post);
     let current;
-    try { current = await api(`/repos/${repo.name}/contents/${postPath(post)}?ref=${encodeURIComponent(repo.branch)}`, token); }
+    try { current = await api(`/repos/${repo.name}/contents/${path}?ref=${encodeURIComponent(repo.branch)}`, token); }
     catch (error) { if (error.status !== 404) throw error; }
     if (!current) return { document: emptyPost(post) };
     if (current.encoding !== 'base64' || current.size > 900000) throw new HttpError(409, 'Reaction file is too large or has an unsupported format.');
     const document = JSON.parse(Buffer.from(current.content, 'base64').toString('utf8'));
     if (!validDocument(document, post)) throw new HttpError(409, 'Existing reaction file has an unsupported format.');
     return { document, sha: current.sha };
+  };
+  const checkPrivate = async (repo, user, token) => {
+    const latest = await api(`/repos/${repo.name}`, token, { cache: 'no-store' });
+    if (repo.visibility !== 'private' || latest.private !== true || latest.id !== repo.id || latest.owner?.id !== user.id || latest.owner?.type !== 'User') {
+      throw new HttpError(403, 'This repository is no longer a private repository owned by your GitHub account. Choose a private repository in extension settings.');
+    }
+  };
+  // Called inside the public repository's serial queue, including receipt retries.
+  const latest = async (repo, post) => read(repo, await installationToken(repo), post);
+  const mirror = async (repo, user, source) => {
+    const post = postRef(source.post || source.commit);
+    if (!validDocument(source, post)) throw new HttpError(409, 'Public reaction data could not be read.');
+    const document = { ...emptyPost(post), visibility: 'public' };
+    if (source.users[user.id]?.emoji) document.users[user.id] = source.users[user.id];
+    if (post.platform === 'web') {
+      document.placements = {};
+      for (const [id, placement] of Object.entries(source.placements || {})) {
+        if (placement.users?.[user.id]?.emoji) document.placements[id] = { anchor: placement.anchor, users: { [user.id]: placement.users[user.id] } };
+      }
+    }
+    const path = `public/${postPath(post)}`;
+    const token = await installationToken(repo);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await checkPrivate(repo, user, token);
+      const current = await read(repo, token, post, path);
+      if (JSON.stringify(current.document) === JSON.stringify(document)) return { status: 'saved', changed: false };
+      await checkPrivate(repo, user, token);
+      try {
+        const result = await api(`/repos/${repo.name}/contents/${path}`, token, { method: 'PUT', body: JSON.stringify({
+          message: `mirror public reactions: ${postKey(post)} by @${user.login}`,
+          content: Buffer.from(JSON.stringify(document, null, 2) + '\n').toString('base64'), branch: repo.branch, ...(current.sha ? { sha: current.sha } : {}),
+        }) });
+        return { status: 'saved', changed: true, sha: result.commit.sha };
+      } catch (error) { if (![409, 422].includes(error.status) || attempt === 4) throw error; }
+    }
   };
   const write = async (repo, user, input, requestId) => {
     const event = parseReaction(input);
@@ -115,10 +150,7 @@ export function createService(env, fetcher = fetch) {
       const document = recordReaction(current.document, post, user, event, requestId, new Date().toISOString());
       // Queueing and conflict retries can outlive the initial visibility check.
       // Check with GitHub again before sending any reaction content to the repo.
-      const latest = await api(`/repos/${repo.name}`, token, { cache: 'no-store' });
-      if (latest.private !== true || latest.id !== repo.id || latest.owner?.id !== user.id || latest.owner?.type !== 'User') {
-        throw new HttpError(403, 'This repository is no longer a private repository owned by your GitHub account. Choose a private repository in extension settings.');
-      }
+      await checkPrivate(repo, user, token);
       try {
         const result = await api(`/repos/${repo.name}/contents/${postPath(post)}`, token, { method: 'PUT', body: JSON.stringify({
           message: `reaction: ${event.emoji || 'remove'} on ${event.commit} by @${user.login}`,
@@ -160,5 +192,5 @@ export function createService(env, fetcher = fetch) {
       } catch (error) { if (![409, 422].includes(error.status) || attempt === 4) throw error; }
     }
   };
-  return { actor, identity, target, read, write };
+  return { actor, identity, target, read, write, latest, mirror };
 }

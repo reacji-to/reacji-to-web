@@ -11,6 +11,8 @@ test('Workers runtime authenticates, commits public and private reactions, and r
   const calls = [];
   let redirectIdentity = false;
   let privateRepository = true, becomesPublicBeforeWrite = false;
+  let mirrorFails = false, pendingTree = [];
+  const files = new Map();
   const json = value => new RuntimeResponse(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
   const runtime = new Miniflare(convertV4MiniflareOptions({
     modules: true, script: bundle.outputFiles[0].text,
@@ -30,19 +32,29 @@ test('Workers runtime authenticates, commits public and private reactions, and r
       if (path.endsWith('/access_tokens')) return json({ token: 'test-installation-token' });
       if (path.includes('/git/ref/heads/')) return json({ object: { sha: 'head' } });
       if (path.endsWith('/git/commits/head')) return json({ tree: { sha: 'base' } });
-      if (path.includes('/contents/')) return request.method === 'PUT' ? json({ commit: { sha: 'private-commit' } }) : new RuntimeResponse('', { status: 404 });
-      if (path.endsWith('/git/trees')) return json({ sha: 'tree' });
+      if (path.includes('/contents/')) {
+        if (request.method === 'PUT') {
+          if (mirrorFails && path.includes('/contents/public/')) return new RuntimeResponse('', { status: 503 });
+          files.set(path, JSON.parse(Buffer.from(calls.at(-1).body.content, 'base64')));
+          return json({ commit: { sha: 'private-commit' } });
+        }
+        return files.has(path) ? json({ encoding: 'base64', size: 1000, sha: 'file', content: Buffer.from(JSON.stringify(files.get(path))).toString('base64') }) : new RuntimeResponse('', { status: 404 });
+      }
+      if (path.endsWith('/git/trees')) { pendingTree = calls.at(-1).body.tree; return json({ sha: 'tree' }); }
       if (path.endsWith('/git/commits')) return json({ sha: 'public-commit' });
-      if (path.includes('/git/refs/heads/')) return json({});
+      if (path.includes('/git/refs/heads/')) {
+        for (const file of pendingTree) files.set(`/repos/reacji-to/reacji-to-data/contents/${file.path}`, JSON.parse(file.content));
+        return json({});
+      }
       assert.fail(`Unexpected GitHub path: ${path}`);
     },
   }));
   try {
     const post = await pagePost('https://imbue.com/');
     const placement = { id: crypto.randomUUID(), selector: 'html:nth-of-type(1) > body:nth-of-type(1) > p:nth-of-type(1)', tag: 'p', quote: 'Test target', x: 500, y: 500 };
-    const send = (visibility, requestId = crypto.randomUUID()) => runtime.dispatchFetch('https://reacji.test/v1/react', {
+    const send = (visibility, requestId = crypto.randomUUID(), extra = {}, emoji = '💙') => runtime.dispatchFetch('https://reacji.test/v1/react', {
       method: 'POST', headers: { Authorization: 'Bearer test-user-token', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ visibility, repository: 'octocat/private', requestId, event: { version: 1, post, placement, emoji: '💙' } }),
+      body: JSON.stringify({ visibility, repository: 'octocat/private', requestId, mirrorPublic: false, ...extra, event: { version: 1, post, placement, emoji } }),
     });
     for (const visibility of ['public', 'private']) {
       const requestId = crypto.randomUUID();
@@ -54,8 +66,35 @@ test('Workers runtime authenticates, commits public and private reactions, and r
       assert.equal((await repeated.json()).duplicate, true);
     }
     assert.deepEqual(calls.filter(c => c.path.endsWith('/access_tokens')).map(c => c.body.repository_ids), [[1424709515], [77]]);
+    const mirrorPath = `/repos/octocat/private/contents/public/data/web/${post.id}.json`;
+    assert.equal(files.has(mirrorPath), false, 'explicit opt-out skips mirrors');
+    const noRepo = await send('public', crypto.randomUUID(), { repository: undefined, mirrorPublic: undefined });
+    assert.equal((await noRepo.json()).mirror, undefined);
+    const mirrored = await send('public', crypto.randomUUID(), { mirrorPublic: undefined });
+    assert.equal((await mirrored.json()).mirror.status, 'saved', 'mirroring defaults on when a repo is selected');
+    assert.equal(files.get(mirrorPath).placements[placement.id].users[42].emoji, '💙');
+    const privatePath = `/repos/octocat/private/contents/data/web/${post.id}.json`;
+    const privateBefore = structuredClone(files.get(privatePath));
+    mirrorFails = true;
+    const retryId = crypto.randomUUID();
+    const failed = await send('public', retryId, { mirrorPublic: true }, '🔥');
+    assert.equal(failed.status, 200);
+    const partial = await failed.json();
+    assert.equal(partial.document.placements[placement.id].users[42].emoji, '🔥');
+    assert.equal(partial.mirror.status, 'failed');
+    mirrorFails = false;
+    const retried = await send('public', retryId, { mirrorPublic: true }, '🔥');
+    assert.equal((await retried.json()).mirror.status, 'saved');
+    assert.equal(files.get(mirrorPath).placements[placement.id].users[42].emoji, '🔥');
+    await send('public', crypto.randomUUID(), { mirrorPublic: true }, null);
+    await send('public', retryId, { mirrorPublic: true }, '🔥');
+    assert.deepEqual(files.get(mirrorPath).placements, {}, 'old receipt retries mirror current state, never resurrect removals');
+    assert.deepEqual(files.get(privatePath), privateBefore, 'mirror never changes private reactions');
     // A saved selection must not bypass a fresh check on subsequent requests.
     privateRepository = false;
+    const invalidMirror = await send('public', crypto.randomUUID(), { mirrorPublic: true });
+    assert.equal(invalidMirror.status, 200);
+    assert.equal((await invalidMirror.json()).mirror.status, 'failed');
     for (const endpoint of ['react', 'private/validate', 'private/read']) {
       const before = calls.length;
       const response = await runtime.dispatchFetch(`https://reacji.test/v1/${endpoint}`, {
@@ -68,8 +107,11 @@ test('Workers runtime authenticates, commits public and private reactions, and r
     }
     privateRepository = true;
     becomesPublicBeforeWrite = true;
+    const unsafeMirror = await send('public', crypto.randomUUID(), { mirrorPublic: true });
+    assert.equal(unsafeMirror.status, 200);
+    assert.equal((await unsafeMirror.json()).mirror.status, 'failed');
     const beforeWrite = calls.length;
-    const blocked = await send('private');
+    const blocked = await send('private', crypto.randomUUID(), {}, '🔥');
     assert.equal(blocked.status, 403);
     assert.match((await blocked.json()).error, /no longer a private repository/);
     assert.equal(calls.slice(beforeWrite).some(c => c.path.includes('/contents/') && c.body), false);
