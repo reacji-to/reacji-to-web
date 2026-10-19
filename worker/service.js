@@ -25,8 +25,11 @@ export function createService(env, fetcher = fetch) {
   const api = async (path, token, init = {}) => {
     const response = await fetcher(`https://api.github.com${path}`, {
       ...init, headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${token}`, 'User-Agent': 'reacji-to-worker',
-        'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(20000),
+        'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(20000),
     });
+    // Workers supports manual redirects, but rejects redirect: 'error' before fetching.
+    // Never follow an upstream redirect with a user's or installation's credentials.
+    if (response.status >= 300 && response.status < 400) throw new HttpError(502, 'GitHub returned an unexpected redirect. Try again later.');
     if (!response.ok) throw new HttpError(response.status, response.status === 401 ? 'Reconnect GitHub in extension settings.' : `GitHub request failed (${response.status}). Check the selected repository and app installation.`);
     return response.json();
   };
