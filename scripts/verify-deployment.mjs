@@ -15,7 +15,7 @@ for (let attempt = 0; attempt < 6; attempt++) {
       })),
     );
     for (const response of [home, bundle, health]) assert.equal(response.status, 200);
-    assert.match(await home.text(), /Hold down <strong>Option<\/strong>/);
+    assert.match(await home.text(), /Hold <kbd class="try-key-name">Option<\/kbd>/);
     assert.equal(await bundle.text(), pageDemoScript, 'Live reaction bundle differs from this commit');
     assert.equal((await health.json()).configured, true, 'Worker signing credentials are missing');
     console.log('Verified reacji.to homepage, exact reaction bundle, and Worker configuration.');
