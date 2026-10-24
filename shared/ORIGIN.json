@@ -1,12 +1,15 @@
 {
   "repository": "reacji-to/reacji-to",
-  "commit": "e7c4d95a8ded6fcb958999769a35ee3854b84f7f",
+  "commit": "a4179c63ff4e86fd9fa3eed2aacf92c6a5d2697a",
   "sha256": {
     "posts.js": "c954aba2dd756e205305f06730cb4f1a3ee01ff3f3775a8a9e471fbf978877cd",
-    "protocol.js": "e119bfbd310ba781991adc32a98d82e2304cd78ca3e9c239b1081a8d2c55c595",
-    "web.js": "f55b82a5e676cd603154b63afe56f0a6b6d9ccffbcdec3566e2a9620ad6342c1",
+    "protocol.js": "e653d0cb48ea04e1969b2a71fe4b40d5f0251b4dc2680f0ac74eb8b1ddaab920",
+    "web.js": "b25f03054544ef6ef05676400dc1adbcde60a4a8cce6bb64929bffae60ca92b1",
     "emoji.json": "5f999063d3c86c6da47e2b4f4ddc48f3b98293bfcfada8acb7cddc341d54c094",
     "config.js": "ed38e3b15865fe082f77e19bb7dc40563b5a8fc5ddcc1acc243254527c0d51be",
-    "brand.js": "31e76f689eb113817800180b9119c25aa55f11456f923ae7d64f2da043a024a7"
+    "brand.js": "31e76f689eb113817800180b9119c25aa55f11456f923ae7d64f2da043a024a7",
+    "slack.js": "63befd4bbb0f2d632a5df82b2b2ba494bc024900b491c7bed52d4545172b102d",
+    "reaction-payload.js": "cbbd719dfe83dc7dff6ac06a8cb97730c8a8b8670554890e205ddf281cb251dd",
+    "attachments.js": "e9f6d28fd55c895fcbfcbb2ede5ddad4e81c97e65a2850a70620855ea18adcc8"
   }
 }

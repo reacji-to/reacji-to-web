@@ -1,0 +1,13 @@
+Header eye-white cleanup — 2026-10-21
+Tool: built-in image_gen (transparent output)
+Edit target: public/eyes-blank.png
+Final asset: public/eyes-blank.png, resized to 464 × 360 for the existing 232:180 layout.
+Original generated output: /Users/h/.codex/generated_images/01a15fe2-8e75-7a43-8a60-2a0346535971/exec-5008bbbf-253c-4f0c-a6c8-5137ed198eb3.png
+
+Prompt:
+Use case: precise-object-edit. Edit target: attached two empty white cartoon eyeballs PNG used under animated blue irises. Remove the gray circular old iris/pupil smudges and any residual dark pupil marks from the interiors of BOTH eyeballs. The broad central face of each eyeball must be pure clean opaque white (#FFFFFF), uninterrupted smooth white with no circles, no spots, no pupils or irises. Preserve the existing two upright oval eyeball shapes, exact relative arrangement and proportions, soft dimensional gray shading only near the outer edges, and transparent background. No new eyes, no text, no extras. Keep overall framing tightly fitted exactly like the original 232x180 asset. The moving irises will be layered separately in code; output ONLY the two clean blank eyeballs.
+
+2026-10-21 edge cleanup follow-up (built-in image_gen):
+Full-resolution output retained to avoid an extra resampling step.
+Source: /Users/h/.codex/generated_images/01a15fe2-8e75-7a43-8a60-2a0346535971/exec-940616c4-9bb5-45f8-ae5c-fe985484fe16.png
+Prompt: Preserve exact silhouette, proportions, placement, broad pure white interiors and subtle soft gray edge shading. Fix ragged pixel edges, gray dirt, colored fringes, compression speckles, stair-stepping and stray pixels around and between the eyeballs. Produce smooth anti-aliased alpha edges. Two blank eyeballs only, no pupils, on transparency, same 232:180 composition, at least 1024px wide.

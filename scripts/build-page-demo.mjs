@@ -7,10 +7,10 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const snapshot = resolve(root, 'shared/extension');
 export async function buildPageDemo({ watch = false, check = false, source } = {}) {
-  const sibling = resolve(root, '../devnull/src');
+  const sibling = resolve(root, '../reactji-to-extension/src');
   if (!source) { try { await access(resolve(sibling, 'reaction-app.js')); source = sibling; } catch { source = snapshot; } }
   source = resolve(source);
-  const alias = Object.fromEntries(['reaction-app','web','posts','protocol','emoji-frequency'].map(name => [`@reacji/${name}`,resolve(source,`${name}.js`)]));
+  const alias = Object.fromEntries(['reaction-app','web','posts','protocol','emoji-frequency','destinations','destination-registry'].map(name => [`@reacji/${name}`,resolve(source,`${name}.js`)]));
   const output = resolve(root, 'worker/page-demo.js');
   const options = { absWorkingDir: root, entryPoints: ['demo/page-entry.js'], bundle: true, write: false, metafile: true,
     format: 'iife', target: 'chrome120', minify: true, loader: { '.css': 'text' }, alias,

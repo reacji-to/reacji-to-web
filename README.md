@@ -55,6 +55,6 @@ Tests mock writes and cover permission narrowing, identity matching, conflict re
 
 Run `npm run preview` and open http://127.0.0.1:4173. Hold down Option (Alt on Windows/Linux) and click content, or use the example-post eyes buttons. The preview watches the sibling extension’s source imports, rebuilds the trial bundle, and restarts the server automatically; refresh the page after an edit.
 
-`../devnull/src/reaction-app.js` owns all reaction behavior. The extension entry point passes its runtime; this site's `demo/page-entry.js` passes a browser-local runtime and sample-post discovery. `demo/showcase.js` only drives the example presentation. There is no second picker implementation.
+`../reactji-to-extension/src/reaction-app.js` owns all reaction behavior. The extension entry point passes its runtime; this site's `demo/page-entry.js` passes a browser-local runtime and sample-post discovery. `demo/showcase.js` only drives the example presentation. There is no second picker implementation.
 
 `npm run build:page-demo` refreshes the bundle and `shared/extension/` snapshot. `npm run check:shared` verifies every imported source file and the resulting bundle. It runs before browser tests and deployment. Without the sibling extension checkout, builds use the tracked snapshot, so CI and deployments are self-contained. Set `REACJI_EXTENSION_SOURCE` to use another extension `src` directory. Never edit generated sources directly; see AGENTS.md in both repositories.

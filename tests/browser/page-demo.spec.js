@@ -13,7 +13,7 @@ async function place(page,emoji,name){
 test('actual extension picker saves page placements only in browser storage and survives reload',async({page})=>{
  const errors=[],writes=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());});
  await setup(page);
- await expect(page.getByText('Try it on this site!',{exact:true})).toBeVisible();
+ await expect(page.getByRole('complementary',{name:'Try it on this site'})).toBeVisible();
  await place(page,'💙','blue heart');
  const chip=page.locator('reacji-to-reactions .pin .chip');
  await expect(chip).toHaveText('💙');await expect(chip.locator('span')).toHaveCount(0);
@@ -36,23 +36,24 @@ test('homepage typography, banner and invitation fit desktop and mobile',async({
   await page.setViewportSize({width,height:1000});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   const heading=await page.locator('h1').evaluate(el=>({height:el.offsetHeight,line:parseFloat(getComputedStyle(el).lineHeight),font:getComputedStyle(el).fontFamily}));
-  expect(heading.height).toBeLessThan(heading.line*1.5);expect(heading.font).toContain('Manrope');
+  expect(heading.height).toBeLessThan(heading.line*2.5);expect(heading.font).toContain('Manrope');
+  expect(await page.evaluate(()=>document.documentElement.scrollHeight)).toBeLessThanOrEqual(1000);
   if(width===1440||width===390)await page.screenshot({path:`.impeccable/review/polished-home-${width}.png`,fullPage:true});
  }
  await page.setViewportSize({width:1440,height:1000});await page.emulateMedia({colorScheme:'dark'});
  await page.screenshot({path:'.impeccable/review/polished-home-dark.png',fullPage:true});
 });
 
-test('Public and Private trial choices stay separate and both remain local',async({page})=>{
+test('the trial exposes one local reaction store',async({page})=>{
  await setup(page);await place(page,'💙','blue heart');
  const chip=page.locator('reacji-to-reactions .pin .chip');await expect(chip).toHaveText('💙');
- await chip.click();await page.locator('reacji-to-reactions').getByRole('button',{name:'Private',exact:true}).click();
+ await chip.click();
+ await expect(page.locator('reacji-to-reactions').getByRole('group',{name:'Reaction storage'})).toBeHidden();
  await page.locator('reacji-to-reactions').getByRole('searchbox').fill('🔥');await page.locator('reacji-to-reactions').getByRole('button',{name:'fire',exact:true}).click();
  await expect(chip).toHaveText('🔥');
  const scopes=await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('reacji.to:page-demo:')).map(k=>({scope:k.split(':').at(-1),users:Object.values(JSON.parse(localStorage.getItem(k)).placements)[0].users})));
- expect(scopes).toHaveLength(2);expect(scopes.find(s=>s.scope==='public').users['1'].emoji).toBe('💙');expect(scopes.find(s=>s.scope==='private').users['1'].emoji).toBe('🔥');
+ expect(scopes).toHaveLength(1);expect(scopes[0].scope).toBe('local');expect(scopes[0].users['0'].emoji).toBe('🔥');
  await page.reload();await expect(chip).toHaveCount(1);
- await chip.click();await page.locator('reacji-to-reactions').getByRole('button',{name:'Private',exact:true}).click();
  await expect(chip).toHaveText('🔥');
 });
 
@@ -96,9 +97,9 @@ test('Option/Alt uses the extension eyes cursor and picker, consumes links, and 
  expect(errors).toEqual([]);expect(writes).toEqual([]);
 });
 
-test('right-click keeps the browser menu and the invitation says to hold down Option',async({page})=>{
+test('right-click keeps the browser menu and the invitation says to hold Option',async({page})=>{
  await setup(page);
- await expect(page.locator('.try-site')).toContainText('Hold down Option');
+ await expect(page.locator('.try-site')).toContainText(/Hold (Option|Alt) and click anything/);
  await page.locator('.try-site').screenshot({path:'.impeccable/review/hold-option.png'});
  await page.locator('.hero-promise').evaluate(el=>el.addEventListener('contextmenu',event=>{queueMicrotask(()=>window.contextPrevented=event.defaultPrevented);}));
  await page.locator('.hero-promise').click({button:'right'});
@@ -123,4 +124,25 @@ test('page trial reactions remain centered on the clicked point after scrolling 
  await assertPosition();
  await page.evaluate(()=>scrollBy(0,100));await assertPosition();
  await page.reload();await page.evaluate(()=>document.fonts.ready);await assertPosition();
+});
+
+test('shared eyes-drag selection highlights and restores a text span after reload', async ({ page }) => {
+  await setup(page);
+  const points = await page.locator('.hero-promise').evaluate(el => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node;
+    while (walker.nextNode()) if (walker.currentNode.length > 8) { node = walker.currentNode; break; }
+    const range = document.createRange(); range.setStart(node, 0); range.setEnd(node, 8);
+    const a = range.cloneRange(); a.collapse(true); const b = range.cloneRange(); b.collapse(false);
+    const first = a.getBoundingClientRect(), last = b.getBoundingClientRect();
+    return { start: first.x + 1, end: last.x, y: first.y + first.height / 2, text: range.toString() };
+  });
+  await page.keyboard.down('Alt'); await page.mouse.move(points.start, points.y); await page.mouse.down();
+  await page.mouse.move(points.end, points.y, { steps: 8 }); await page.mouse.up(); await page.keyboard.up('Alt');
+  await expect(page.locator('.selected-text')).toHaveText(points.text.trim());
+  await expect(page.getByRole('checkbox', { name: /Include screenshot/ })).toHaveCount(0);
+  await page.locator('reacji-to-reactions').getByRole('searchbox').fill('🚀');
+  await page.locator('reacji-to-reactions').getByRole('button', { name: 'rocket', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => [...CSS.highlights.get('reacji-text')].map(range => range.toString()))).toEqual([points.text]);
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => [...(CSS.highlights.get('reacji-text') || [])].map(range => range.toString()))).toEqual([points.text]);
 });

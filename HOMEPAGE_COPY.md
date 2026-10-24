@@ -6,97 +6,58 @@ I'll apply your wording to the site. You can add notes using HTML comments. -->
 
 ## Hero heading
 
-React to anything
+Slack reacjis, anywhere.
 
-## Hero description
+## Hero promise
 
-You know how you can choose any reaction emoji you want in Slack, but most sites only give you a thumb or a star or whatever?
+Trigger automations, bookmark things, kick off agents.
 
-Now you can react to any post anywhere with any emoji you want. And, you can set it up so that things actually happen depending on which emoji you use, also just like in Slack!
+## Agent setup label
 
-Actually, you can stick reacji anywhere on the web, on any part of any page. You can make them public, and other users will see how you reacted, or you can make them private. Public ones get committed in our public GitHub repo; private ones go in a private repo of your choosing. 
+Give this to your agent
 
-Potential uses:
-- bookmarking
-- triggering agents
-- snark
-- whatever you can dream up
+## Agent setup command
 
-## Primary button
+Use https://github.com/reacji-to/reacji-to/blob/main/SETUP.md to set up reacji.to.
 
-Get reacji.to ↗
+## Copy button
 
-## Install note
+Copy → Copied!
 
-For Chrome & Helium · Free
+## Download line
 
-## Install guide link
+Or download the extension for Chrome and Helium.
 
-Install guide
+## Try it on this site
+
+Hold Option and click anything to try it on this site.
+Your test reactions stay in this browser.
+
+(Touch screens: Tap the eyes on a post to try it.)
+
+## Demo automation toasts
+
+- 🔖 Bookmarking… → Bookmarked. Added to your reading list
+- 📣 Posting to Slack… → Shared in #ai-news. Your team can see it now
+- 🧵 Summarizing thread… → Summary created: notes/nunomaduro-4000-users.md
+- 🐶 Saving to Dog file… → Saved to Dog file. dogs.md, entry 12
 
 ## Logo alternative text
 
-Two glossy eyes with piercing blue irises, looking sideways
+The header eyes are decorative next to the visible “reacji.to” wordmark.
 
-## Demo heading
+## Browser title
 
-That bit. Right there.
+reacji.to · Slack reacjis, anywhere
 
-## Demo description
+## Search description
 
-A sentence worth saving. A post that made you laugh. A link that broke your brain. Your reaction stays with the part you picked.
+Slack reacjis, anywhere. Trigger automations, bookmark things, and kick off agents with any emoji on any page.
 
-## Demo instruction
+## Footer links
 
-Try a reaction. Nothing is posted.
-
-## Example excerpt
-
-“The best part of the internet is still the people who put a little of themselves into it.”
-
-## Public / Private heading
-
-Out loud. Or just for you.
-
-## Public / Private description
-
-Choose **Public** to share a reaction, or **Private** to keep it in your own private GitHub repo. The switch is right in the picker.
-
-Every reaction uses your GitHub identity. Every change is a commit.
-
-## Following heading
-
-Your kind of people.
-
-## Following description
-
-See everyone’s public reactions, or just the people you follow on dev-null. Your own reactions always come along.
-
-Your public reactions have a home:
-
-reacji.to/YOUR_GITHUB_HANDLE
+Extension Website Data MIT
 
 ## Notes or additional sections
 
 <!-- Add any new copy, removals, or layout notes here. -->
-
-## Browser title
-
-Have a feeling? Put it there. · reacji.to
-
-## Search description
-
-Any emoji, anywhere on the web. Your GitHub identity. Your choice: Public or Private.
-
-## Header link
-
-Get the extension ↗
-
-## Footer
-
-Made for your corner of the internet.  
-Independent of dev-null, X, LinkedIn and GitHub.
-
-## Footer links
-
-Extension · Website · Data · MIT

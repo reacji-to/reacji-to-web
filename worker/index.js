@@ -4,6 +4,7 @@ import { postRef } from '../shared/posts.js';
 import { publicPage } from './pages.js';
 import { parseReaction, COMMIT_ID } from '../shared/protocol.js';
 import { verifyPagePost } from '../shared/web.js';
+import { authenticationRequired, siteAuthorized } from './basic-auth.js';
 
 // One serial writer per repository. Receipts contain no tokens or reaction bodies.
 export class RepositoryWriter extends DurableObject {
@@ -49,6 +50,7 @@ export class RepositoryWriter extends DurableObject {
     if ((await this.ctx.storage.list({ limit: 1 })).size) await this.ctx.storage.setAlarm(Date.now() + 86400000);
   }
 }
+
 const json = (value, status = 200, headers = {}) => Response.json(value, { status, headers: { 'Cache-Control': 'no-store', ...headers } });
 export default {
   async fetch(request, env) {
@@ -57,7 +59,10 @@ export default {
     const cors = allowed ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } : {};
     const url = new URL(request.url);
     if (url.pathname === '/health' && request.method === 'GET') return json({ service: 'reacji-to', configured: Boolean(env.GITHUB_APP_PRIVATE_KEY) });
-    if (request.method === 'GET') return publicPage(url, env);
+    if (request.method === 'GET') {
+      if (!siteAuthorized(request, env)) return authenticationRequired();
+      return publicPage(url, env);
+    }
     if (origin && !allowed) return json({ error: 'Unsupported origin.' }, 403);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (request.method !== 'POST' || !['/v1/react', '/v1/private/read', '/v1/private/validate'].includes(url.pathname)) return json({ error: 'Not found.' }, 404, cors);

@@ -17,6 +17,50 @@ function fixture(handler, repositoryMetadata = () => Response.json({ id: 77, pri
     return handler(path, init, body);
   }) };
 }
+test('multi-reaction writes preserve legacy emoji, survive conflicts, and remove only the named emoji', async () => {
+  let document={version:1,commit,users:{42:{login:'octocat',emoji:'👍'},99:{login:'friend',emoji:'🔥'}}};
+  let writes=0;
+  const f=fixture((path,init,body)=>{
+    if(init.method==='PUT'){
+      if(++writes===1){document.users[42]={login:'octocat',emoji:'👍',emojis:['👍','💙']};return new Response('',{status:409});}
+      document=JSON.parse(Buffer.from(body.content,'base64'));return Response.json({commit:{sha:'saved'}});
+    }
+    return Response.json({encoding:'base64',size:1000,sha:'old',content:Buffer.from(JSON.stringify(document)).toString('base64')});
+  });
+  const send=(emoji,operation)=>f.service.write(repo,user,{version:1,commit,emoji,operation},crypto.randomUUID());
+  await send('🔥','add');
+  assert.deepEqual(document.users[42].emojis,['👍','💙','🔥']);
+  assert.equal((await send('🔥','add')).changed,false);
+  await send('💙','remove');
+  assert.deepEqual(document.users[42].emojis,['👍','🔥']);
+  assert.equal((await send('💙','remove')).changed,false);
+  await send('🔥','remove');await send('👍','remove');
+  assert.equal(document.users[42],undefined);assert.equal(document.users[99].emoji,'🔥');
+});
+test('public profiles retain all post emoji until the last reaction is removed', async () => {
+  let document = { version: 1, commit, users: {} }, profile = { version: 1, id: 42, reactions: {} };
+  const f = fixture((path, init, body) => {
+    if (path.includes('/git/ref/heads/')) return Response.json({ object: { sha: 'head' } });
+    if (path.includes('/git/commits/head')) return Response.json({ tree: { sha: 'base' } });
+    if (path.includes('/contents/')) return Response.json({ encoding: 'base64', content: Buffer.from(JSON.stringify(path.includes('/profiles/') ? profile : document)).toString('base64') });
+    if (path.endsWith('/git/trees')) {
+      document = JSON.parse(body.tree[0].content); profile = JSON.parse(body.tree[1].content);
+      return Response.json({ sha: 'tree' });
+    }
+    if (path.endsWith('/git/commits')) return Response.json({ sha: 'commit' });
+    if (path.includes('/git/refs/heads/')) return Response.json({});
+    throw new Error(path);
+  });
+  const send = (emoji, operation) => f.service.write({ ...repo, visibility: 'public' }, user, { version: 1, commit, emoji, operation }, crypto.randomUUID());
+  await send('🔥', 'add'); await send('💙', 'add');
+  assert.deepEqual(Object.values(profile.reactions)[0].emojis, ['🔥', '💙']);
+  await send('🔥', 'remove');
+  assert.deepEqual(Object.values(profile.reactions)[0].emojis, ['💙']);
+  assert.equal(Object.values(profile.reactions)[0].emoji, '💙');
+  await send('💙', 'remove');
+  assert.deepEqual(profile.reactions, {}); assert.deepEqual(document.users, {});
+});
+
 test('public mirrors isolate the owner in public/, reconcile moves and removals, and retry conflicts', async () => {
   const post = await pagePost('https://example.test/article');
   const anchor = { id: crypto.randomUUID(), selector: 'body', tag: 'body', quote: '', x: 500, y: 500 };
@@ -134,6 +178,7 @@ test('path traversal and invalid emoji fail before requesting app credentials', 
   const f = fixture(() => { throw new Error('Should not fetch'); });
   await assert.rejects(f.service.write(repo, user, { version: 1, commit: '../../secret', emoji: '🔥' }, 'x'), /Invalid post/);
   await assert.rejects(f.service.write(repo, user, { version: 1, commit, emoji: 'text' }, 'x'), /Unicode/);
+  await assert.rejects(f.service.write(repo, user, { version: 1, commit, emoji: 'slack:TONE:foo' }, crypto.randomUUID()), /Slack emoji/);
   assert.equal(f.calls.length, 0);
 });
 

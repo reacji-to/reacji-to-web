@@ -52,3 +52,5 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: 8ce2cffc47b8b76a6f1d67997bf196bf
       - name: Verify live website
         run: node scripts/verify-deployment.mjs
+        env:
+          SITE_BASIC_AUTH: ${{ secrets.SITE_BASIC_AUTH }}

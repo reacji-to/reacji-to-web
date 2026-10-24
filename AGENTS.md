@@ -1,6 +1,6 @@
 # Shared reaction UI — required
 
-The extension repository (`../devnull`, GitHub `reacji-to/reacji-to`) owns the reaction implementation. `src/reaction-app.js` is the engine; `src/content.js` is only the extension entry point. The website imports that engine through `demo/page-entry.js`.
+The extension repository (`../reactji-to-extension`, GitHub `reacji-to/reacji-to`) owns the reaction implementation. `src/reaction-app.js` is the engine; `src/content.js` is only the extension entry point. The website imports that engine through `demo/page-entry.js`.
 
 - Never implement or copy a second picker, shortcut, chip renderer, placement resolver, drag interaction, or reaction controller in website code. Change the extension source, then rebuild the website.
 - `demo/browser-api.js` adapts storage to browser-local trial data; `demo/samples.js` identifies the example posts; `demo/showcase.js` controls presentation timing only. Keep all reaction behavior in the shared engine.

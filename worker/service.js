@@ -1,7 +1,8 @@
 import { createPrivateKey, sign } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { postRef, postKey, postPath, postUrl, emptyPost, validDocument } from '../shared/posts.js';
-import { parseReaction, COMMIT_ID } from '../shared/protocol.js';
+import { parseReaction, COMMIT_ID, reactionEmojis, updateReactionUser } from '../shared/protocol.js';
+import { slackEmoji } from '../shared/slack.js';
 import { REPOSITORY, REPOSITORY_ID } from '../shared/config.js';
 import { verifyPagePost, placementUsers } from '../shared/web.js';
 
@@ -21,17 +22,19 @@ function recordReaction(current, post, user, event, requestId, at) {
     document.placements[event.placement.id] ||= { anchor: event.placement, users: {} };
     users = document.placements[event.placement.id].users;
   }
-  if (event.emoji === null) {
+  const next = updateReactionUser(users[user.id], event, { login: user.login, requestId, at });
+  if (!next) {
     delete users[user.id];
     if (event.placement && !Object.keys(users).length) delete document.placements[event.placement.id];
-  } else users[user.id] = { login: user.login, emoji: event.emoji, requestId, at };
+  } else users[user.id] = next;
   return document;
 }
 
 function alreadySaved(document, event, user, requestId) {
   const previous = placementUsers(document, event.placement)[user.id];
   if (previous?.requestId === requestId) return true;
-  if (!event.moveFrom) return event.emoji === null ? !previous : previous?.emoji === event.emoji;
+  if (event.operation) return event.operation === 'add' ? reactionEmojis(previous).includes(event.emoji) : !reactionEmojis(previous).includes(event.emoji);
+  if (!event.moveFrom) return event.emoji === null ? !previous : reactionEmojis(previous).length === 1 && previous?.emoji === event.emoji;
   // The server may have committed before the response was lost. A retried move
   // is complete only when our source is gone and our exact destination is saved.
   const destination = document.placements?.[event.placement.id];
@@ -141,6 +144,7 @@ export function createService(env, fetcher = fetch) {
   };
   const write = async (repo, user, input, requestId) => {
     const event = parseReaction(input);
+    if (slackEmoji(event.emoji)) throw new HttpError(400, 'Slack emoji must be routed to Slack.');
     const post = postRef(event.post || event.commit);
     const token = await installationToken(repo);
     if (repo.visibility === 'public') return writePublic(repo, user, event, post, requestId, token);
@@ -179,7 +183,8 @@ export function createService(env, fetcher = fetch) {
       profile.login = user.login;
       if (event.moveFrom) delete profile.reactions[`${postKey(post)}:${event.moveFrom}`];
       const profileKey = postKey(post) + (event.placement ? `:${event.placement.id}` : '');
-      if (event.emoji) profile.reactions[profileKey] = { post, ...(event.placement ? { placement: event.placement } : {}), emoji: event.emoji, at, url: postUrl(post) };
+      const saved = placementUsers(document, event.placement)[user.id];
+      if (reactionEmojis(saved).length) profile.reactions[profileKey] = { post, ...(event.placement ? { placement: event.placement } : {}), emoji: saved.emoji, ...(saved.emojis ? { emojis: saved.emojis } : {}), at, url: postUrl(post) };
       else delete profile.reactions[profileKey];
       const tree = await api(`/repos/${repo.name}/git/trees`, token, { method: 'POST', body: JSON.stringify({ base_tree: base.tree.sha, tree: [
         { path: postPath(post), mode: '100644', type: 'blob', content: JSON.stringify(document, null, 2) + '\n' },
