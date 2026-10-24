@@ -29,7 +29,7 @@ test('agent setup copies the complete guide prompt and offers manual copy when b
   await expect(page.locator('footer')).not.toContainText('·');
 });
 
-test('about is the canonical agent guide and copies the same complete instruction', async ({ page }) => {
+test('install is the canonical agent guide and copies the same instruction', async ({ page }) => {
   await page.route('https://reacji.to/**', async route => {
     const response = await publicPage(new URL(route.request().url()));
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: Buffer.from(await response.arrayBuffer()) });
@@ -37,9 +37,18 @@ test('about is the canonical agent guide and copies the same complete instructio
   await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
     writeText: async text => { window.copiedSetup = text; },
   } }));
-  await page.goto('https://reacji.to/about');
-  await expect(page.getByRole('heading', { name: 'Make reacji.to yours.' })).toBeVisible();
-  await expect(page.getByText('design', { exact: true })).toBeVisible();
+  await page.goto('https://reacji.to/install');
+  await expect(page.getByRole('heading', { name: 'Make reacji.to work your way.' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'design', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Privacy and local storage' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Optional emoji actions' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Things to decide' })).toBeVisible();
   await page.getByRole('button', { name: 'Copy setup instructions' }).click();
   expect(await page.evaluate(() => window.copiedSetup)).toBe(setupPrompt);
+});
+
+test('old about links redirect to the install guide', async () => {
+  const response = await publicPage(new URL('https://reacji.to/about'));
+  expect(response.status).toBe(301);
+  expect(response.headers.get('location')).toBe('https://reacji.to/install');
 });

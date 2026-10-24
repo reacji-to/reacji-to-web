@@ -1,4 +1,4 @@
-export const setupPrompt = 'Set up or change reacji.to for me using https://reacji.to/about. Keep my reactions private and local by default, help me name the emoji I use, and configure only the private backup or emoji actions I ask for.';
+export const setupPrompt = 'Set up or change reacji.to for me using https://reacji.to/install';
 
 export const setup = `<section class="agent-setup" aria-label="Set up with your agent">
 <p class="agent-label">Give this to your agent</p>

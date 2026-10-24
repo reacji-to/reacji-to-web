@@ -237,7 +237,7 @@ test('shared action sections stay local in the website trial', async ({ page }) 
   await expect(page.getByRole('group', { name: 'Reaction storage' })).toBeHidden();
   await expect(page.getByRole('button', { name: /Help and settings/ })).toHaveText('?');
   await page.getByRole('button', { name: /Help and settings/ }).click();
-  await expect(page).toHaveURL('https://reacji.to/about');
-  await expect(page.getByRole('heading', { name: 'Make reacji.to yours.' })).toBeVisible();
+  await expect(page).toHaveURL('https://reacji.to/install');
+  await expect(page.getByRole('heading', { name: 'Make reacji.to work your way.' })).toBeVisible();
   expect(writes).toEqual([]);
 });

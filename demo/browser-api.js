@@ -36,7 +36,7 @@ async function handle(message) {
     return {visibility:'local'};
   }
   if(message.type==='status')return {connected:false,actor:null,privateRepository:null};
-  if(message.type==='options'){location.assign('/about');return {url:`${location.origin}/about`};}
+  if(message.type==='options'){location.assign('/install');return {url:`${location.origin}/install`};}
   const post=postRef(message.post||message.event?.post);
   if(post.platform==='web' ? post.url!==canonicalUrl(location.href) : !samplePosts.some(sample=>sample.post.platform===post.platform&&sample.post.id===post.id))throw new Error('Choose content on this page.');
   const integration = destinations.entries.find(item => item.kind === 'integration' && (destinations.readType(item.id) === message.type || message.visibility === item.id));
