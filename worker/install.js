@@ -7,6 +7,7 @@ export const installStyles = `
 .install-hero{max-width:820px;padding:20px 0 44px}.install-kicker{margin:0 0 12px;color:var(--guide-accent);font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .install-page h1{font:800 clamp(42px,7vw,72px)/.98 Manrope,system-ui,sans-serif;letter-spacing:-.055em;margin:0 0 22px;max-width:12ch}
 .install-lede{font-size:20px;line-height:1.55;color:var(--ink-soft);max-width:710px;margin:0 0 34px}
+.install-disclaimer{font-size:13px;font-weight:650;color:var(--muted);margin:-18px 0 34px}.install-disclaimer a{color:var(--ink);font-weight:750}
 .install-page .agent-setup{max-width:820px}.install-page .agent-label{font-size:14px}
 .install-layout{display:grid;grid-template-columns:220px minmax(0,720px);gap:72px;align-items:start}
 .install-toc{display:block;position:sticky;top:24px;padding:18px 0;border-top:1px solid var(--guide-line);border-bottom:1px solid var(--guide-line)}
@@ -35,6 +36,7 @@ const toc = [
 export const install = `<article class="install-page">
 <div class="install-hero"><p class="install-kicker">Installation &amp; configuration guide</p><h1>Make reacji.to work your way.</h1>
 <p class="install-lede">Install the extension, give your emoji names you remember, and add only the private backup or per-emoji actions you actually want. Everything begins private and local.</p>
+<p class="install-disclaimer">Written by AI for AI, human content is on <a href="/">reacji.to</a></p>
 ${setup}</div>
 <div class="install-layout"><nav class="install-toc" aria-label="On this page"><strong>On this page</strong>${toc}</nav><div class="install-content">
 

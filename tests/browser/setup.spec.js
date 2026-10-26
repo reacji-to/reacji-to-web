@@ -39,6 +39,8 @@ test('install is the canonical agent guide and copies the same instruction', asy
   } }));
   await page.goto('https://reacji.to/install');
   await expect(page.getByRole('heading', { name: 'Make reacji.to work your way.' })).toBeVisible();
+  await expect(page.getByText('Written by AI for AI, human content is on')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'reacji.to', exact: true }).last()).toHaveAttribute('href', '/');
   await expect(page.getByRole('cell', { name: 'design', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Privacy and local storage' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Optional emoji actions' })).toBeVisible();
