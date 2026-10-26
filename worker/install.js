@@ -1,4 +1,4 @@
-import { setup, setupScript } from './setup.js';
+import { setup, setupScript, setupPrompt } from './setup.js';
 
 export const installStyles = `
 .install-body{height:auto;min-height:100dvh;overflow:auto;background:#fcfcfd}
@@ -37,6 +37,7 @@ export const install = `<article class="install-page">
 <div class="install-hero"><p class="install-kicker">Installation &amp; configuration guide</p><h1>Make reacji.to work your way.</h1>
 <p class="install-lede">Install the extension, give your emoji names you remember, and add only the private backup or per-emoji actions you actually want. Everything begins private and local.</p>
 <p class="install-disclaimer">Written by AI for AI, human content is on <a href="/">reacji.to</a></p>
+<p><a href="/install/agent.txt" type="text/plain">Read as plain text</a></p>
 ${setup}</div>
 <div class="install-layout"><nav class="install-toc" aria-label="On this page"><strong>On this page</strong>${toc}</nav><div class="install-content">
 
@@ -99,3 +100,22 @@ ${setup}</div>
 </div></div></article><script src="/install.js" defer></script>`;
 
 export const installScript = setupScript;
+
+// Keep both formats on the same guide, following Posthole's /install/agent.txt pattern.
+export const installText = install
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '')
+  .replace(/<nav\b[^>]*>[\s\S]*?<\/nav>/g, '')
+  .replace(/<section class="agent-setup"[\s\S]*?<\/section>/g, `\n\nGive this to your agent:\n${setupPrompt}\n\n`)
+  .replace(/<p><a href="\/install\/agent\.txt"[^>]*>Read as plain text<\/a><\/p>/g, '')
+  .replace(/<h([123])\b[^>]*>([\s\S]*?)<\/h\1>/g, (_, level, text) => `\n\n${'#'.repeat(Number(level))} ${text}\n\n`)
+  .replace(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g, (_, href, text) => `${text} (${new URL(href, 'https://reacji.to').href})`)
+  .replace(/<li\b[^>]*>/g, '\n- ')
+  .replace(/<p\b[^>]*>/g, '\n\n')
+  .replace(/<tr\b[^>]*>/g, '\n| ')
+  .replace(/<\/(?:td|th)>/g, ' | ')
+  .replace(/<\/(?:p|ol|ul|section|div|table)>/g, '\n\n')
+  .replace(/<[^>]*>/g, '')
+  .replace(/&(amp|lt|gt|quot|#39);/g, (_, entity) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" }[entity]))
+  .replace(/[ \t]+\n/g, '\n')
+  .replace(/\n{3,}/g, '\n\n')
+  .trim() + '\n';

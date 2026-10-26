@@ -1,5 +1,15 @@
 const encoder = new TextEncoder();
 
+// Exact resources needed by the public install guide; never exempt a prefix.
+const publicInstallPaths = new Set([
+  '/install', '/install/', '/install/agent.txt', '/install.js', '/logo.png',
+  '/manrope-latin.woff2', '/geist-400.woff2', '/geist-600.woff2',
+]);
+
+export function publicInstallRequest(request) {
+  return ['GET', 'HEAD'].includes(request.method) && publicInstallPaths.has(new URL(request.url).pathname);
+}
+
 function sameText(left, right) {
   const a = encoder.encode(left);
   const b = encoder.encode(right);

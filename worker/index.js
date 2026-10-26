@@ -4,7 +4,7 @@ import { postRef } from '../shared/posts.js';
 import { publicPage } from './pages.js';
 import { parseReaction, COMMIT_ID } from '../shared/protocol.js';
 import { verifyPagePost } from '../shared/web.js';
-import { authenticationRequired, siteAuthorized } from './basic-auth.js';
+import { authenticationRequired, publicInstallRequest, siteAuthorized } from './basic-auth.js';
 
 // One serial writer per repository. Receipts contain no tokens or reaction bodies.
 export class RepositoryWriter extends DurableObject {
@@ -59,9 +59,16 @@ export default {
     const cors = allowed ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } : {};
     const url = new URL(request.url);
     if (url.pathname === '/health' && request.method === 'GET') return json({ service: 'reacji-to', configured: Boolean(env.GITHUB_APP_PRIVATE_KEY) });
-    if (request.method === 'GET') {
-      if (!siteAuthorized(request, env)) return authenticationRequired();
-      return publicPage(url, env);
+    if (request.method === 'GET' || request.method === 'HEAD') {
+      const publicInstall = publicInstallRequest(request);
+      if (!publicInstall && !siteAuthorized(request, env)) return authenticationRequired();
+      const response = await publicPage(url, env);
+      const headers = new Headers(response.headers);
+      if (!publicInstall && env.SITE_BASIC_AUTH) {
+        headers.set('Cache-Control', 'private, no-store');
+        headers.append('Vary', 'Authorization');
+      }
+      return new Response(request.method === 'HEAD' ? null : response.body, { status: response.status, headers });
     }
     if (origin && !allowed) return json({ error: 'Unsupported origin.' }, 403);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });

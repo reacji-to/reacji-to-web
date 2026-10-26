@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { publicPage } from '../../worker/pages.js';
 import { setupPrompt } from '../../worker/setup.js';
+import { installText } from '../../worker/install.js';
 
 test('agent setup copies the complete guide prompt and offers manual copy when blocked', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -45,8 +46,15 @@ test('install is the canonical agent guide and copies the same instruction', asy
   await expect(page.getByRole('heading', { name: 'Privacy and local storage' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Optional emoji actions' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Things to decide' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Read as plain text' })).toHaveAttribute('href', '/install/agent.txt');
+  // Every guide section is represented in the agent format, from the same source.
+  for (const heading of await page.locator('.install-content h2, .install-content h3').allTextContents()) {
+    expect(installText).toContain(heading);
+  }
   await page.getByRole('button', { name: 'Copy setup instructions' }).click();
   expect(await page.evaluate(() => window.copiedSetup)).toBe(setupPrompt);
+  await page.getByRole('link', { name: 'Read as plain text' }).click();
+  expect(await page.locator('body').innerText()).toBe(installText);
 });
 
 test('old about links redirect to the install guide', async () => {
