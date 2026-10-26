@@ -109,6 +109,14 @@ test('script plays all four examples, and pauses on manual interaction', async (
   await page.goto('https://reacji.to/',{waitUntil:'domcontentloaded'});
   await page.locator('.reaction-demo').scrollIntoViewIfNeeded();
   const toast=page.locator('.automation-toast');
+  const cursor=page.locator('.demo-cursor');
+  await expect(cursor).toHaveAttribute('data-target','trigger',{timeout:6000});
+  const cursorBox=await cursor.boundingBox();
+  expect(cursorBox.width).toBeGreaterThanOrEqual(44);
+  expect(cursorBox.height).toBeGreaterThanOrEqual(53);
+  await expect(cursor).toHaveAttribute('data-target','search',{timeout:4000});
+  await expect(cursor).toHaveAttribute('data-target','emoji',{timeout:4000});
+  await expect(cursor).toHaveAttribute('data-target','result',{timeout:5000});
   await expect(page.locator('#post-x .chip')).toHaveText('🔖',{timeout:12000});
   await expect(toast).toContainText('Bookmarked',{timeout:4000});
   await expect(page.locator('#post-linkedin .chip')).toHaveText('📣',{timeout:12000});
@@ -125,7 +133,7 @@ test('script plays all four examples, and pauses on manual interaction', async (
   await page.getByRole('button',{name:'Pause demo'}).click();
   await expect(page.getByRole('button',{name:'Play demo'})).toBeVisible();
   await page.getByRole('tab',{name:'X',exact:true}).click();
-  await expect(page.locator('.demo-stage > .demo-cursor')).toBeHidden();
+  await expect(cursor).toBeHidden();
   await expect(page.getByRole('tab',{name:'X',exact:true})).toHaveAttribute('aria-selected','true');
 });
 

@@ -12,7 +12,13 @@ export function startShowcase(app) {
   const record = () => index === 3 ? webRecord : app.recordFor(current());
   const trigger = () => index === 3 ? current().querySelector('.web-quote') : record()?.button;
   function sync() { play.dataset.playing = String(playing); play.setAttribute('aria-label', playing ? 'Pause demo' : 'Play demo'); }
-  function cancel() { generation++; clearTimeout(timer); cursor.hidden = true; toast.hidden = true; }
+  function hideCursor() {
+    if (cursor.matches(':popover-open')) cursor.hidePopover();
+    cursor.hidden = true;
+    cursor.removeAttribute('data-target');
+    cursor.removeAttribute('data-press');
+  }
+  function cancel() { generation++; clearTimeout(timer); hideCursor(); toast.hidden = true; }
   // A pretend automation run, so each scripted reaction shows what it could trigger.
   function automate(post, run) {
     toast.querySelector('.toast-emoji').textContent = post.dataset.reaction;
@@ -45,12 +51,30 @@ export function startShowcase(app) {
     // The shared app observes geometry on scroll, including pins on hidden examples.
     window.dispatchEvent(new Event('resize'));
   }
-  function point(el) {
+  function insideStage(el) {
+    let node = el;
+    while (node) {
+      if (stage.contains(node)) return true;
+      node = node.getRootNode?.().host;
+    }
+    return false;
+  }
+  function point(el, target, x = .6, y = .6) {
     if (!el) return;
-    reveal(el);
-    const box = el.getBoundingClientRect(), parent = stage.getBoundingClientRect();
+    if (insideStage(el)) reveal(el);
+    const box = el.getBoundingClientRect();
     cursor.hidden = false;
-    cursor.style.transform = `translate(${box.left-parent.left+box.width*.6}px,${box.top-parent.top+stage.scrollTop+box.height*.6}px)`;
+    // Reopen it so it stays above the picker in the browser's top layer.
+    if (cursor.matches(':popover-open')) cursor.hidePopover();
+    cursor.showPopover();
+    cursor.dataset.target = target;
+    cursor.removeAttribute('data-press');
+    cursor.style.transform = `translate3d(${box.left+box.width*x-5}px,${box.top+box.height*y-4}px,0)`;
+  }
+  function press() {
+    cursor.removeAttribute('data-press');
+    void cursor.offsetWidth;
+    cursor.dataset.press = '';
   }
   // The shared picker returns focus to its trigger on close; scripted runs should not leave a focus ring.
   function release() { const host = document.activeElement; if (host && root.contains(host)) (host.shadowRoot?.activeElement || host).blur(); }
@@ -68,28 +92,37 @@ export function startShowcase(app) {
           await app.choose(currentRecord, null);
           if (run !== generation) return;
         }
-        point(trigger()); step = 1; schedule(1000);
+        point(trigger(), 'trigger'); step = 1; schedule(1100);
       }
       else if (step === 1) {
+        press();
         if (index === 3) {
           const target = trigger(), box = target.getBoundingClientRect();
           webRecord = await app.place({target,x:box.left+box.width*.6,y:box.top+box.height*.5,href:location.href},{focus:false});
         } else await app.open(record(), false, {focus:false});
         if (run !== generation) return;
-        cursor.hidden = true; step = 2; schedule(1000);
+        point(app.active?.panel.querySelector('.search'), 'search', .85, .55);
+        step = 2; schedule(1000);
       } else if (step === 2) {
         const search = app.active?.panel.querySelector('.search');
         if (search) { search.value = current().dataset.reaction; search.dispatchEvent(new Event('input')); }
+        point(app.active?.panel.querySelector('.grid .emoji'), 'emoji', .55, .55);
         step = 3; schedule(1200);
       } else if (step === 3) {
+        press();
         if (record()) await app.choose(record(), current().dataset.reaction, undefined, {trackUsage:false});
         if (run !== generation) return;
         release(); automate(current(), run);
-        requestAnimationFrame(() => { const row = record()?.rowEl; if (run === generation && row && !row.hidden) reveal(row); });
+        requestAnimationFrame(() => {
+          const row = record()?.rowEl;
+          if (run !== generation) return;
+          if (row && !row.hidden) reveal(row);
+          point(toast, 'result', .92, .55);
+        });
         step = 4; schedule(3400);
       } else {
         // Clear the outgoing example before it can appear in another loop.
-        toast.hidden = true;
+        toast.hidden = true; hideCursor();
         if (record()) await app.choose(record(), null);
         if (run !== generation) return;
         release();
